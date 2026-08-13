@@ -1,0 +1,13 @@
+{
+  "name": "hero-checker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "STV On Bildausschnitt-Tool with shared-password login",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.6",
+    "express": "^4.19.2"
+  }
+}
