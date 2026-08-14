@@ -84,24 +84,45 @@ header .spec-chips span {
 .ruler { display:flex; justify-content:space-between; font-size:9px; color:var(--lt-muted); margin-top:4px; width:100%; font-family:var(--lt-mono); }
 .canvas-hint { font-size:11px; color:var(--lt-muted); margin-top:5px; }
 
-/* ── Device row ── */
-.device-row { display:flex; flex-direction:row; flex-wrap:wrap; gap:16px; align-items:flex-start; }
-.device-col { display:flex; flex-direction:column; gap:16px; align-items:flex-start; }
+/* ── Geräte-Vorschau: einheitliches Kachel-Raster, Mobile zuerst ── */
 .section-title {
   font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--lt-ink);
   margin-top:6px; display:flex; align-items:center; gap:8px;
 }
 .section-title .count { font-weight:500; color:var(--lt-muted); text-transform:none; letter-spacing:0; font-family:var(--lt-mono); font-size:10.5px; }
-.device {
-  display:flex; flex-direction:column; gap:7px; cursor:zoom-in; border-radius:14px;
-  padding:8px; margin:-8px; transition:background .15s,transform .15s;
+.preview-grid-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-top:24px; }
+.preview-grid-head .toggles { font-size:11px; }
+.preview-grid {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,240px)); gap:14px; margin-top:12px;
 }
-.device:hover { background:var(--lt-raised); }
-.device:hover .dev-wrap, .device:hover #phone-frame, .device:hover #tv-outer { box-shadow:0 10px 26px -14px rgba(27,24,17,.45); }
-.device-label { font-size:11px; color:var(--lt-ink-dim); text-transform:uppercase; letter-spacing:.06em; display:flex; align-items:center; gap:8px; font-weight:600; }
-.expand-hint { margin-left:auto; color:var(--lt-muted); font-weight:400; text-transform:none; letter-spacing:0; font-size:10.5px; opacity:0; transition:opacity .15s; white-space:nowrap; }
-.device:hover .expand-hint { opacity:1; }
-.dev-badge { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
+.device-tile {
+  position:relative; aspect-ratio:1/1; border-radius:14px; overflow:hidden; cursor:zoom-in;
+  border:1px solid var(--lt-line); background:repeating-conic-gradient(#1a1a1a 0% 25%,#222 0% 50%) 0 0/14px 14px;
+  box-shadow:0 8px 18px -16px rgba(27,24,17,.35); transition:box-shadow .15s;
+}
+.device-tile:hover { box-shadow:0 16px 32px -16px rgba(27,24,17,.55); }
+.device-tile::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:4px; z-index:6;
+  background:var(--tile-accent,var(--lt-accent));
+}
+.tile-stage { position:absolute; top:50%; left:50%; transform-origin:center center; }
+.tile-badge {
+  position:absolute; top:10px; left:10px; right:10px; z-index:5;
+  display:flex; align-items:center; gap:7px;
+  background:rgba(10,10,14,.72); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  padding:6px 9px; border-radius:20px; color:#fff; pointer-events:none;
+}
+.tile-icon {
+  display:inline-block; height:11px; width:calc(11px * var(--shape-ratio,1));
+  border:1.6px solid var(--tile-accent,#fff); border-radius:2px; flex-shrink:0; box-sizing:border-box;
+}
+.tile-name { font-size:11px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tile-dim { margin-left:auto; font:600 9.5px/1 var(--lt-mono); color:rgba(255,255,255,.68); white-space:nowrap; flex-shrink:0; }
+.expand-hint {
+  position:absolute; bottom:10px; right:10px; z-index:5; opacity:0; transition:opacity .15s; pointer-events:none;
+  background:rgba(10,10,14,.72); color:#fff; font-size:10px; font-weight:600; padding:4px 9px; border-radius:12px;
+}
+.device-tile:hover .expand-hint { opacity:1; }
 
 /* Shared crop container */
 .dev-wrap {
@@ -482,16 +503,16 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
   .canvas-col { width:100%; }
   .controls { width:100%; max-width:none; min-width:0; }
   header { padding:12px 16px; }
-  .device--wide { zoom:0.75; } /* Wide Hero (800px fest) an schmalere Fenster anpassen */
   .export-bar { flex-direction:column; align-items:stretch; padding:18px; gap:16px; }
   .exp-btn { min-width:0; width:100%; }
+  .preview-grid { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); }
 }
 @media (max-width: 480px) {
   .workspace { padding:10px; gap:16px; }
   header { padding:10px 14px; gap:10px; }
   header .spec-chips span { font-size:9.5px; padding:5px 8px; }
-  .device-row .device { zoom:0.74; }
-  .device--wide { zoom:0.4; } /* Wide Hero (800px fest) muss stärker verkleinert werden */
+  .preview-grid { grid-template-columns:repeat(2,1fr); gap:10px; }
+  .tile-dim { display:none; } /* auf schmalen Kacheln hat der Gerätename Vorrang vor den Maßen */
 }
 </style>
 </head>
@@ -614,17 +635,25 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
       </button>
     </div>
 
-    <!-- Kleine Devices: Web Mobile + iPhone + Tablet -->
-    <div class="section-title">Kleine Devices</div>
-    <div class="device-row">
+    <!-- Geräte-Vorschau: einheitliches Kachel-Raster, Mobile-Geräte zuerst -->
+    <div class="preview-grid-head">
+      <div class="section-title">Geräte-Vorschau <span class="count">5 Formate</span></div>
+      <div class="toggles">
+        <label><input type="checkbox" id="show-tvui" checked> TV-Oberfläche</label>
+        <label><input type="checkbox" id="show-hd" checked> HD-Badge</label>
+      </div>
+    </div>
+    <div class="preview-grid">
 
       <!-- Web Mobile: 430×932 screen, 36px nav + 670px hero → display at 50% = 215×(18+335) -->
-      <div class="device" data-name="Web Mobile · 430×670" onclick="openDeviceLightbox(this,event)">
-        <div class="device-label">
-          <span class="dev-badge" style="background:#c864ff"></span>
-          Web Mobile <span style="color:#444;font-weight:400">430 × 670</span>
-          <span class="expand-hint">Vergrößern ↗</span>
+      <div class="device-tile" style="--tile-accent:#c864ff" onclick="openDeviceLightbox(document.getElementById('stage-wmob'),event)">
+        <div class="tile-badge">
+          <span class="tile-icon" style="--shape-ratio:.64"></span>
+          <span class="tile-name">Web Mobile</span>
+          <span class="tile-dim">430×670</span>
         </div>
+        <span class="expand-hint">Vergrößern ↗</span>
+        <div class="tile-stage" id="stage-wmob" data-name="Web Mobile · 430×670">
         <div style="width:215px;border:1px solid #333;border-radius:4px;overflow:hidden">
           <!-- Brand nav bar: 430×36 native → 215×18 display -->
           <div style="width:215px;height:18px;overflow:hidden;background:#131313">
@@ -671,16 +700,19 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
             </div>
           </div>
         </div>
-      </div>
+        </div><!-- /tile-stage -->
+      </div><!-- /device-tile -->
 
       <!-- iPhone 16 Pro Max native: 440×956 at 50% = 220×478 -->
       <!-- Hero crop within: 440×740, below Dynamic Island (59px→30px) -->
-      <div class="device" data-name="iOS nativ · iPhone 16 Pro Max" onclick="openDeviceLightbox(this,event)">
-        <div class="device-label">
-          <span class="dev-badge" style="background:#ff9050"></span>
-          iOS nativ <span style="color:#444;font-weight:400">iPhone 16 Pro Max</span>
-          <span class="expand-hint">Vergrößern ↗</span>
+      <div class="device-tile" style="--tile-accent:#ff9050" onclick="openDeviceLightbox(document.getElementById('stage-ios'),event)">
+        <div class="tile-badge">
+          <span class="tile-icon" style="--shape-ratio:.6"></span>
+          <span class="tile-name">iOS nativ</span>
+          <span class="tile-dim">iPhone 16 Pro Max</span>
         </div>
+        <span class="expand-hint">Vergrößern ↗</span>
+        <div class="tile-stage" id="stage-ios" data-name="iOS nativ · iPhone 16 Pro Max">
 
         <div id="phone-frame">
           <!-- Dynamic Island -->
@@ -741,15 +773,18 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
             </div>
           </div>
         </div>
-      </div>
+        </div><!-- /tile-stage -->
+      </div><!-- /device-tile -->
 
       <!-- Tablet 768×500 → 384×250 at 50% -->
-      <div class="device" data-name="Tablet · 768×500" onclick="openDeviceLightbox(this,event)">
-        <div class="device-label">
-          <span class="dev-badge" style="background:#00c8ff"></span>
-          Tablet <span style="color:#444;font-weight:400">768 × 500</span>
-          <span class="expand-hint">Vergrößern ↗</span>
+      <div class="device-tile" style="--tile-accent:#00c8ff" onclick="openDeviceLightbox(document.getElementById('stage-tab'),event)">
+        <div class="tile-badge">
+          <span class="tile-icon" style="--shape-ratio:1.54"></span>
+          <span class="tile-name">Tablet</span>
+          <span class="tile-dim">768×500</span>
         </div>
+        <span class="expand-hint">Vergrößern ↗</span>
+        <div class="tile-stage" id="stage-tab" data-name="Tablet · 768×500">
         <div class="dev-wrap" style="width:384px;height:250px">
           <img id="tab-bg" class="dev-bg" alt="">
           <div class="dev-grad" style="background:
@@ -779,23 +814,18 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
             </div>
           </div>
         </div>
-      </div>
-    </div><!-- /device-row -->
-
-    <!-- Große Devices: Smart TV + Wide Hero -->
-    <div class="section-title">Große Devices</div>
-    <div class="device-col">
+        </div><!-- /tile-stage -->
+      </div><!-- /device-tile -->
 
       <!-- Smart TV -->
-      <div class="device" data-name="Smart TV · 1920×1080" onclick="openDeviceLightbox(this,event)">
-        <div class="preview-label">
-          <span>Smart TV <span style="color:#444;font-weight:400">1920 × 1080</span></span>
-          <div class="toggles">
-            <label><input type="checkbox" id="show-tvui" checked> Oberfläche</label>
-            <label><input type="checkbox" id="show-hd" checked> HD-Badge</label>
-            <span class="expand-hint">Vergrößern ↗</span>
-          </div>
+      <div class="device-tile" style="--tile-accent:#ff6432" onclick="openDeviceLightbox(document.getElementById('stage-tv'),event)">
+        <div class="tile-badge">
+          <span class="tile-icon" style="--shape-ratio:1.78"></span>
+          <span class="tile-name">Smart TV</span>
+          <span class="tile-dim">1920×1080</span>
         </div>
+        <span class="expand-hint">Vergrößern ↗</span>
+        <div class="tile-stage" id="stage-tv" data-name="Smart TV · 1920×1080">
         <div id="tv-outer" style="width:960px;height:540px;position:relative;overflow:hidden;background:#181B20;border-radius:4px;border:1px solid #333">
           <img id="tv-bg" class="dev-bg" alt="">
           <div style="position:absolute;inset:0;pointer-events:none;background:
@@ -852,16 +882,18 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
             </div>
           </div>
         </div>
-      </div>
+        </div><!-- /tile-stage -->
+      </div><!-- /device-tile -->
 
-
-    <!-- Wide Hero 2000×825 -->
-    <div class="device device--wide" data-name="Wide Hero · 2000×825" onclick="openDeviceLightbox(this,event)">
-      <div class="device-label">
-        <span class="dev-badge" style="background:#50d250"></span>
-        Wide Hero <span style="color:#444;font-weight:400">2000 × 825</span>
+      <!-- Wide Hero 2000×825 -->
+      <div class="device-tile" style="--tile-accent:#50d250" onclick="openDeviceLightbox(document.getElementById('stage-wide'),event)">
+        <div class="tile-badge">
+          <span class="tile-icon" style="--shape-ratio:2.4"></span>
+          <span class="tile-name">Wide Hero</span>
+          <span class="tile-dim">2000×825</span>
+        </div>
         <span class="expand-hint">Vergrößern ↗</span>
-      </div>
+        <div class="tile-stage" id="stage-wide" data-name="Wide Hero · 2000×825">
       <!-- Wrapper: Brand-Leiste (36px nativ) + Bildbereich (825px nativ), beide bei 0.4 scale -->
       <div style="width:800px;background:#0c0c0e;display:flex;flex-direction:column">
         <!-- Brand-Leiste: 36px nativ × 0.4 = 14.4px display -->
@@ -922,8 +954,9 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
           </div>
         </div>
       </div>
-    </div>
-    </div><!-- /device-col -->
+        </div><!-- /tile-stage -->
+      </div><!-- /device-tile -->
+    </div><!-- /preview-grid -->
   </div><!-- /canvas-col -->
 
   <!-- Sidebar -->
@@ -1424,8 +1457,9 @@ function openDeviceLightbox(el, evt){
   const tag=document.getElementById('device-lightbox-tag');
   el._ltOrigParent=el.parentNode;
   el._ltOrigNext=el.nextSibling;
+  el.classList.add('expanded'); // verhindert, dass layoutDeviceTiles() den Raster-Fit während des Aufklappens neu setzt
+  el.style.transform='none'; // Raster-Fit-Skalierung zurücksetzen, bevor die native Größe gemessen wird
   holder.appendChild(el);
-  el.classList.add('expanded');
   tag.textContent=el.dataset.name||'';
   backdrop.classList.add('open');
   document.addEventListener('keydown', onLightboxKeydown);
@@ -1452,21 +1486,20 @@ function closeDeviceLightbox(){
   }
   backdrop.classList.remove('open');
   document.removeEventListener('keydown', onLightboxKeydown);
+  layoutDeviceTiles(); // Raster-Fit für die zurückgelegte Kachel wiederherstellen
 }
 function onLightboxKeydown(e){
   if(e.key==='Escape') closeDeviceLightbox();
 }
 
-/* ── Responsive Stage: Desktop-Canvas + Smart TV nutzen die verfügbare
+/* ── Responsive Stage: der Desktop-Editor-Canvas nutzt die verfügbare
    Breite (voller Bildschirm auf großen Monitoren, volle Breite minus
-   Padding gestapelt auf Mobilgeräten). Die Overlay-Design-Ebenen (Nav,
-   Hero-Text, TV-Oberfläche) sind fest auf 1920px-Breite ausgelegt, daher
-   genügt ein gemeinsamer Skalierungsfaktor W/1920 für alle drei. ── */
+   Padding gestapelt auf Mobilgeräten). Die Nav/Hero-Text-Overlay-Ebene
+   ist fest auf 1920px-Breite ausgelegt, daher genügt der Skalierungsfaktor
+   W/1920. Die Geräte-Vorschau-Kacheln (Smart TV inklusive) werden separat
+   über layoutDeviceTiles() einheitlich in ihre Raster-Kachel eingepasst. ── */
 const deskNavInner=document.getElementById('desk-nav-inner');
 const deskTextInner=document.getElementById('desk-text-inner');
-const tvOuter=document.getElementById('tv-outer');
-const tvInner=document.getElementById('tv-inner');
-const tvDevEntry=DEVS.find(d=>d.id==='tv-bg');
 
 function computeStageWidth(){
   const workspace=document.querySelector('.workspace');
@@ -1496,12 +1529,37 @@ function resizeStage(){
   const overlayScale=w/1920;
   if(deskNavInner) deskNavInner.style.transform='scale('+overlayScale+')';
   if(deskTextInner) deskTextInner.style.transform='scale('+overlayScale+')';
-  if(tvOuter){ tvOuter.style.width=w+'px'; tvOuter.style.height=h+'px'; }
-  if(tvInner) tvInner.style.transform='scale('+overlayScale+')';
-  if(tvDevEntry) tvDevEntry.s=overlayScale;
 
   clampPos();
   render();
+  layoutDeviceTiles();
+}
+
+/* ── Geräte-Vorschau-Kacheln: jedes Gerät hat seine eigene native
+   Render-Größe (unverändert, wie im Original-Markup). layoutDeviceTiles()
+   skaliert jede .tile-stage per transform so, dass sie in ihre quadratische
+   Raster-Kachel passt (contain, nicht croppen) – dadurch wirken alle
+   Geräte in der Übersicht ungefähr gleich groß, ihre echten Seitenverhältnisse
+   bleiben aber als Form sichtbar (Hochkant-Handy vs. breites TV/Wide Hero). ── */
+const TILE_NATIVE={
+  'stage-wmob':{w:215,  h:353},
+  'stage-ios': {w:220,  h:478},
+  'stage-tab': {w:384,  h:250},
+  'stage-tv':  {w:960,  h:540},
+  'stage-wide':{w:800,  h:344.4},
+};
+function layoutDeviceTiles(){
+  Object.keys(TILE_NATIVE).forEach(id=>{
+    const stage=document.getElementById(id);
+    if(!stage || stage.classList.contains('expanded')) return; // im Lightbox nicht überschreiben
+    const tile=stage.closest('.device-tile');
+    if(!tile) return;
+    const {w:nw,h:nh}=TILE_NATIVE[id];
+    const tw=tile.clientWidth, th=tile.clientHeight;
+    if(!tw||!th) return;
+    const scale=Math.min(tw/nw, th/nh)*0.92;
+    stage.style.transform='translate(-50%,-50%) scale('+scale.toFixed(4)+')';
+  });
 }
 
 let resizeTimer=null;
