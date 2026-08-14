@@ -247,29 +247,33 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
 }
 .exp-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
 
-/* Titel- & Text-Eingabe: als klar erkennbares, klickbares Eingabefeld gestaltet */
+/* Titel- & Text-Eingabe: großer, eindeutiger CTA-Button (gleiche Bildsprache
+   wie der Export-Button), damit sofort klar ist: hier wird Text eingegeben. */
 .text-entry-card { border-color:rgba(219,10,64,.3); }
-.text-entry-hint { font-size:11px; color:var(--lt-muted); margin-top:-4px; margin-bottom:2px; }
 .text-entry-btn {
-  width:100%; background:var(--lt-sunk); border:1.5px dashed rgba(219,10,64,.45); border-radius:12px;
-  padding:13px 14px; cursor:text; text-align:left; display:flex; align-items:center; gap:12px;
-  transition:border-color .15s,border-style .15s,background .15s,box-shadow .15s;
+  width:100%; background:var(--lt-accent); color:#fff; border:none; border-radius:12px;
+  padding:16px 18px; cursor:pointer; text-align:left; display:flex; align-items:center; gap:14px;
+  box-shadow:0 10px 22px -12px rgba(219,10,64,.55); transition:filter .15s,transform .1s;
+  animation:text-entry-pulse 2.6s ease-in-out infinite;
 }
-.text-entry-btn:hover, .text-entry-btn:focus-visible {
-  border-style:solid; border-color:var(--lt-accent); background:var(--lt-surface);
-  box-shadow:0 0 0 4px rgba(219,10,64,.1);
-}
+.text-entry-btn:hover { filter:brightness(.94); }
+.text-entry-btn:active { transform:scale(.99); }
 .text-entry-icon {
-  width:36px; height:36px; border-radius:50%; background:var(--lt-accent); color:#fff;
-  display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;
+  width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.22); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0;
 }
 .text-entry-body { min-width:0; display:flex; flex-direction:column; gap:3px; flex:1; }
+.text-entry-cta { font-size:15.5px; font-weight:800; color:#fff; line-height:1.25; }
 .text-entry-preview {
-  font-size:15px; font-weight:800; color:var(--lt-ink); line-height:1.25;
+  font-size:11.5px; font-weight:600; color:rgba(255,255,255,.8);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.text-entry-cta { font-size:11px; color:var(--lt-muted); }
-.text-entry-chevron { color:var(--lt-accent); font-size:16px; flex-shrink:0; }
+.text-entry-chevron { color:#fff; font-size:19px; flex-shrink:0; opacity:.9; }
+@keyframes text-entry-pulse {
+  0%,100% { box-shadow:0 10px 22px -12px rgba(219,10,64,.55); }
+  50%     { box-shadow:0 10px 26px -10px rgba(219,10,64,.85); }
+}
+@media (prefers-reduced-motion: reduce) { .text-entry-btn { animation:none; } }
 
 /* Titel- & Text-Eingabe: Modal */
 #text-modal {
@@ -1014,8 +1018,8 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
       <button class="text-entry-btn" onclick="openTextModal()">
         <span class="text-entry-icon">✎</span>
         <span class="text-entry-body">
-          <span class="text-entry-preview" id="text-entry-preview">Beispiel Titel</span>
-          <span class="text-entry-cta">Titel, Badge, Meta &amp; Beschreibung bearbeiten</span>
+          <span class="text-entry-cta">Hier Titel &amp; Text bearbeiten</span>
+          <span class="text-entry-preview">Aktuell: <span id="text-entry-preview">Beispiel Titel</span></span>
         </span>
         <span class="text-entry-chevron">›</span>
       </button>
