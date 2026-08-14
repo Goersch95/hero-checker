@@ -238,6 +238,7 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
   display:flex; flex-direction:column; align-items:flex-start; gap:8px;
   transition:filter .15s,transform .1s; box-shadow:0 12px 26px -12px rgba(219,10,64,.6);
 }
+.exp-btn[hidden] { display:none; }
 .exp-btn:hover:not(:disabled) { filter:brightness(.93); }
 .exp-btn:active:not(:disabled) { transform:scale(.99); }
 .exp-btn:disabled { opacity:.4; cursor:not-allowed; box-shadow:none; }
@@ -246,6 +247,35 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
   padding:6px 9px; border-radius:20px; white-space:nowrap; flex-shrink:0;
 }
 .exp-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+
+/* Generativ erweitern (Platzhalter-Phase: clientseitige Rand-Erweiterung
+   per Weichzeichner-Verlauf, noch keine echte KI-Anbindung). Eigene Akzentfarbe
+   (Violett), damit klar von Export (Rot) und Sicherheitszonen (Rot/Grün/Orange)
+   unterschieden. */
+.expand-card { border-color:rgba(124,77,255,.35); }
+.expand-badge {
+  font:700 9px/1 var(--lt-mono); letter-spacing:.04em; text-transform:uppercase; color:#6D4AFF;
+  background:rgba(124,77,255,.12); padding:3px 7px; border-radius:10px; margin-left:6px; vertical-align:1px;
+}
+.expand-toggle { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--lt-ink-dim); cursor:pointer; }
+.expand-toggle input { accent-color:#6D4AFF; }
+.expand-toggle input:disabled { opacity:.5; }
+.expand-pct-row { display:flex; justify-content:space-between; font-size:11.5px; color:var(--lt-ink-dim); padding:2px 0; }
+.expand-pct-row[hidden] { display:none; }
+.expand-pct-row b { color:#6D4AFF; font-family:var(--lt-mono); }
+.expand-generate-btn { background:#6D4AFF; box-shadow:0 10px 22px -12px rgba(109,74,255,.55); justify-content:center; }
+.expand-generate-btn:hover:not(:disabled) { filter:brightness(.93); }
+.expand-generate-btn.is-loading { animation:expand-pulse 1s ease-in-out infinite; }
+@keyframes expand-pulse { 0%,100%{opacity:1} 50%{opacity:.55} }
+.expand-result-actions { display:flex; gap:8px; }
+.expand-result-actions[hidden] { display:none; }
+.expand-accept-btn, .expand-discard-btn {
+  flex:1; border:none; border-radius:9px; padding:9px; font-size:12px; font-weight:700; cursor:pointer;
+  transition:filter .15s;
+}
+.expand-accept-btn { background:var(--lt-safe); color:#fff; }
+.expand-discard-btn { background:var(--lt-sunk); color:var(--lt-ink); }
+.expand-accept-btn:hover, .expand-discard-btn:hover { filter:brightness(.95); }
 
 /* Titel- & Text-Eingabe: großer, eindeutiger CTA-Button (gleiche Bildsprache
    wie der Export-Button), damit sofort klar ist: hier wird Text eingegeben. */
@@ -1013,6 +1043,26 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
       <p class="hint">Bild kann nicht kleiner als 3840 × 2160 skaliert oder aus dem Canvas-Bereich geschoben werden.</p>
     </div>
 
+    <div class="card expand-card">
+      <h2>Generativ erweitern <span class="expand-badge">Platzhalter</span></h2>
+      <label class="expand-toggle">
+        <input type="checkbox" id="expand-mode" disabled onchange="toggleExpandMode()">
+        <span>Erweitern-Modus – in die andere Richtung zoomen</span>
+      </label>
+      <p class="hint" id="expand-hint-text">Zeigt beim Rauszoomen die Bereiche außerhalb des Fotos, die generativ ergänzt werden. Aktuell noch eine Platzhalter-Füllung (weicher Kantenverlauf) statt echter KI.</p>
+      <div class="expand-pct-row" id="expand-pct-row" hidden>
+        <span>Wird ergänzt</span>
+        <b id="expand-pct-val">0 %</b>
+      </div>
+      <button class="exp-btn expand-generate-btn" id="expand-generate" disabled onclick="generateExpand()">
+        <span>Jetzt generieren</span>
+      </button>
+      <div class="expand-result-actions" id="expand-result-actions" hidden>
+        <button class="expand-accept-btn" onclick="acceptExpand()">✓ Übernehmen</button>
+        <button class="expand-discard-btn" onclick="discardExpand()">✕ Verwerfen</button>
+      </div>
+    </div>
+
     <div class="card text-entry-card">
       <h2>Titel &amp; Text</h2>
       <button class="text-entry-btn" onclick="openTextModal()">
@@ -1086,6 +1136,8 @@ const DEVS=[
 
 let img=null, imgUrl=null;
 let posX=0, posY=0, zoom=1, minZoom=1;
+let expandMode=false, expandFloorZoom=1, expandBeforeState=null;
+function zoomFloor(){ return expandMode ? expandFloorZoom : minZoom; }
 let dragging=false, didDrag=false, dragX0, dragY0, posX0, posY0;
 
 const canvas=document.getElementById('main-canvas');
@@ -1096,6 +1148,7 @@ function renderCanvas() {
   ctx.clearRect(0,0,CW*S,CH*S);
   ctx.fillStyle='#1a1a1a'; ctx.fillRect(0,0,CW*S,CH*S);
   if(img) ctx.drawImage(img,posX*S,posY*S,img.naturalWidth*zoom*S,img.naturalHeight*zoom*S);
+  drawExpandOverlay();
   const sf=document.getElementById('show-focus');
   if(sf&&sf.checked){
     ctx.save();
@@ -1176,30 +1229,162 @@ function render() { renderCanvas(); renderDevices(); }
 
 function clampPos(){
   if(!img) return;
-  posX=Math.max(CW-img.naturalWidth*zoom, Math.min(0, posX));
-  posY=Math.max(CH-img.naturalHeight*zoom, Math.min(0, posY));
+  const iw=img.naturalWidth*zoom, ih=img.naturalHeight*zoom;
+  // Im Erweitern-Modus kann das Bild kleiner als der Canvas sein (Rand wird generativ
+  // ergänzt) – dann mittig zentrieren statt in eine Ecke zu klemmen.
+  posX = iw>=CW ? Math.max(CW-iw, Math.min(0, posX)) : (CW-iw)/2;
+  posY = ih>=CH ? Math.max(CH-ih, Math.min(0, posY)) : (CH-ih)/2;
 }
 
 function updateSliders(){
   if(!img) return;
   const zPct=Math.round(zoom*100);
   const zsl=document.getElementById('sl-zoom');
-  zsl.min=Math.round(minZoom*100); zsl.value=zPct;
+  zsl.min=Math.round(zoomFloor()*100); zsl.value=zPct;
   const zin=document.getElementById('zoom-input');
-  zin.min=Math.round(minZoom*100);
+  zin.min=Math.round(zoomFloor()*100);
   if(document.activeElement!==zin) zin.value=zPct;
+  const iw=img.naturalWidth*zoom, ih=img.naturalHeight*zoom;
   const xsl=document.getElementById('sl-x');
-  xsl.min=Math.round(CW-img.naturalWidth*zoom); xsl.max=0; xsl.value=Math.round(posX);
+  if(iw>=CW){ xsl.min=Math.round(CW-iw); xsl.max=0; xsl.disabled=false; }
+  else { xsl.min=xsl.max=Math.round(posX); xsl.disabled=true; } // Bild schmaler als Canvas: mittig fixiert, nichts zu verschieben
+  xsl.value=Math.round(posX);
   document.getElementById('sl-x-val').textContent=Math.round(posX)+' px';
   const ysl=document.getElementById('sl-y');
-  ysl.min=Math.round(CH-img.naturalHeight*zoom); ysl.max=0; ysl.value=Math.round(posY);
+  if(ih>=CH){ ysl.min=Math.round(CH-ih); ysl.max=0; ysl.disabled=false; }
+  else { ysl.min=ysl.max=Math.round(posY); ysl.disabled=true; }
+  ysl.value=Math.round(posY);
   document.getElementById('sl-y-val').textContent=Math.round(posY)+' px';
+  updateExpandUI();
   try {
     const [ew,eh]=exportSize();
     const es=document.getElementById('exp-size');
     if(es) es.textContent=ew+' × '+eh;
   } catch(_) {}
   scheduleExportEstimate();
+}
+
+/* ── Generativ erweitern (Platzhalter-Phase) ──────────────────────────────
+   "Erweitern-Modus" senkt vorübergehend die untere Zoom-Grenze (zoomFloor()),
+   sodass man über minZoom hinaus rauszoomen kann; die dadurch am Rand
+   sichtbar werdende Canvas-Fläche außerhalb des Fotos ist genau der Bereich,
+   der generativ ergänzt werden soll. Aktuell wird diese Fläche per weichem
+   Weichzeichner-Verlauf gefüllt (kein API-Call, keine Kosten) – das lässt
+   sich später 1:1 durch einen echten Outpainting-Call ersetzen, ohne dass
+   sich UI oder Ablauf ändern. ── */
+function drawExpandOverlay(){
+  if(!img || !expandMode) return;
+  const iw=img.naturalWidth*zoom, ih=img.naturalHeight*zoom;
+  if(iw>=CW && ih>=CH) return; // Foto deckt den Canvas vollständig ab, nichts zu ergänzen
+  const ix=posX*S, iy=posY*S, iwS=iw*S, ihS=ih*S;
+  ctx.save();
+  ctx.fillStyle='rgba(109,74,255,.22)';
+  ctx.strokeStyle='rgba(124,77,255,.9)';
+  ctx.lineWidth=1.5;
+  ctx.setLineDash([7,5]);
+  const band=(x,y,w,h)=>{ if(w<=0||h<=0) return; ctx.fillRect(x,y,w,h); ctx.strokeRect(x,y,w,h); };
+  band(0,0,CW*S,iy);                                  // oben
+  band(0,iy+ihS,CW*S,CH*S-(iy+ihS));                  // unten
+  const midY0=Math.max(0,iy), midY1=Math.min(CH*S,iy+ihS);
+  band(0,midY0,ix,midY1-midY0);                       // links
+  band(ix+iwS,midY0,CW*S-(ix+iwS),midY1-midY0);        // rechts
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function currentExpandPct(){
+  if(!img) return 0;
+  const iw=img.naturalWidth*zoom, ih=img.naturalHeight*zoom;
+  const coveredArea=Math.min(iw,CW)*Math.min(ih,CH);
+  return Math.max(0, 100-Math.min(100,(coveredArea/(CW*CH))*100));
+}
+
+function updateExpandUI(){
+  const row=document.getElementById('expand-pct-row');
+  const val=document.getElementById('expand-pct-val');
+  const btn=document.getElementById('expand-generate');
+  if(!row||!val||!btn) return;
+  const pct=currentExpandPct();
+  if(expandMode && pct>0.5){
+    row.hidden=false; val.textContent=Math.round(pct)+' %'; btn.disabled=false;
+  } else {
+    row.hidden=true; btn.disabled=true;
+  }
+}
+
+function toggleExpandMode(){
+  if(!img) return;
+  expandMode=document.getElementById('expand-mode').checked;
+  const hint=document.getElementById('expand-hint-text');
+  if(expandMode){
+    expandFloorZoom=Math.max(minZoom*0.55, 0.05);
+    hint.textContent='Rauszoomen (Regler oder Scrollrad), um festzulegen, wie viel ergänzt werden soll. Die violett markierte Fläche wird generativ gefüllt.';
+  } else {
+    if(zoom<minZoom){ zoom=minZoom; clampPos(); }
+    hint.textContent='Zeigt beim Rauszoomen die Bereiche außerhalb des Fotos, die generativ ergänzt werden. Aktuell noch eine Platzhalter-Füllung (weicher Kantenverlauf) statt echter KI.';
+  }
+  updateSliders(); render();
+}
+
+function buildMockExpandCanvas(){
+  const out=document.createElement('canvas'); out.width=CW; out.height=CH;
+  const c=out.getContext('2d');
+  const iw=img.naturalWidth*zoom, ih=img.naturalHeight*zoom;
+  // Platzhalter-"Füllung": großflächig skalierter, weichgezeichneter Hintergrund
+  // (kein echtes Dazuerfinden von Bildinhalt, nur eine farblich passende Fläche).
+  const coverZoom=Math.max(CW/img.naturalWidth, CH/img.naturalHeight);
+  const cw=img.naturalWidth*coverZoom+80, ch=img.naturalHeight*coverZoom+80;
+  c.save();
+  c.filter='blur(56px)';
+  c.drawImage(img, (CW-cw)/2, (CH-ch)/2, cw, ch);
+  c.restore();
+  // scharfes Original obendrauf, an der vom Nutzer gewählten Position/Größe
+  c.drawImage(img, posX, posY, iw, ih);
+  return out.toDataURL('image/png');
+}
+
+function generateExpand(){
+  if(!img) return;
+  const btn=document.getElementById('expand-generate');
+  btn.disabled=true; btn.classList.add('is-loading');
+  btn.querySelector('span').textContent='Generiere …';
+  expandBeforeState={img, posX, posY, zoom};
+
+  setTimeout(()=>{
+    const dataUrl=buildMockExpandCanvas();
+    const newImg=new Image();
+    newImg.onload=()=>{
+      img=newImg; posX=0; posY=0; zoom=1;
+      render();
+      btn.classList.remove('is-loading');
+      btn.hidden=true;
+      document.getElementById('expand-result-actions').hidden=false;
+    };
+    newImg.src=dataUrl;
+  }, 900);
+}
+
+function acceptExpand(){
+  minZoom=1; // das erweiterte Bild deckt die 3840×2160 jetzt exakt ab
+  expandBeforeState=null;
+  document.getElementById('expand-mode').checked=false;
+  expandMode=false;
+  document.getElementById('expand-result-actions').hidden=true;
+  const btn=document.getElementById('expand-generate');
+  btn.hidden=false; btn.disabled=true; btn.querySelector('span').textContent='Jetzt generieren';
+  document.getElementById('expand-hint-text').textContent='Zeigt beim Rauszoomen die Bereiche außerhalb des Fotos, die generativ ergänzt werden. Aktuell noch eine Platzhalter-Füllung (weicher Kantenverlauf) statt echter KI.';
+  updateSliders(); render();
+}
+
+function discardExpand(){
+  if(expandBeforeState){
+    img=expandBeforeState.img; posX=expandBeforeState.posX; posY=expandBeforeState.posY; zoom=expandBeforeState.zoom;
+  }
+  expandBeforeState=null;
+  document.getElementById('expand-result-actions').hidden=true;
+  const btn=document.getElementById('expand-generate');
+  btn.hidden=false; btn.disabled=false; btn.querySelector('span').textContent='Jetzt generieren';
+  updateSliders(); render();
 }
 
 function updateText() {
@@ -1260,7 +1445,7 @@ outer.addEventListener('wheel',e=>{
   const r=canvas.getBoundingClientRect();
   const mx=(e.clientX-r.left)/S, my=(e.clientY-r.top)/S;
   const prev=zoom;
-  zoom=Math.max(minZoom,Math.min(10,zoom*(e.deltaY<0?1.05:.95)));
+  zoom=Math.max(zoomFloor(),Math.min(10,zoom*(e.deltaY<0?1.05:.95)));
   posX=mx-(mx-posX)*(zoom/prev); posY=my-(my-posY)*(zoom/prev);
   clampPos(); updateSliders(); render();
 },{passive:false});
@@ -1310,7 +1495,7 @@ function loadFile(file){
     document.getElementById('desk-text').style.display='block';
     document.getElementById('drop-hint').style.display='none';
     document.querySelectorAll('.exp-btn').forEach(b=>b.disabled=false);
-    ['sl-zoom','sl-x','sl-y','zoom-input'].forEach(id=>document.getElementById(id).disabled=false);
+    ['sl-zoom','sl-x','sl-y','zoom-input','expand-mode'].forEach(id=>document.getElementById(id).disabled=false);
     updateSliders();
     render();
   };
@@ -1332,7 +1517,7 @@ document.getElementById('show-hd').addEventListener('change',function(){
 function applyZoomPct(pct){
   if(!img) return;
   const prev=zoom;
-  zoom=Math.max(minZoom,Math.min(10,pct/100));
+  zoom=Math.max(zoomFloor(),Math.min(10,pct/100));
   posX=CW/2-(CW/2-posX)*(zoom/prev);
   posY=CH/2-(CH/2-posY)*(zoom/prev);
   clampPos(); updateSliders(); render();
@@ -1351,7 +1536,7 @@ zoomInput.addEventListener('keydown',function(e){
 document.getElementById('sl-zoom').addEventListener('input',function(){
   if(!img) return;
   const prev=zoom;
-  zoom=Math.max(minZoom,Math.min(10,+this.value/100));
+  zoom=Math.max(zoomFloor(),Math.min(10,+this.value/100));
   // Zoom toward canvas center
   posX=CW/2-(CW/2-posX)*(zoom/prev);
   posY=CH/2-(CH/2-posY)*(zoom/prev);
