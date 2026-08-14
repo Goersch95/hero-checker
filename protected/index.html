@@ -14,53 +14,130 @@
   --f-body: 'Bull Text',  system-ui, sans-serif;
   --gray:   #aaaaaa;
   --ghost:  rgba(255,255,255,0.1);
+
+  /* ── Leuchttisch chrome tokens (tool UI only, not the hero overlay above) ── */
+  --lt-bg:      #F5F1E9;
+  --lt-surface: #FFFFFF;
+  --lt-sunk:    #EFE9DC;
+  --lt-raised:  #FBF8F2;
+  --lt-ink:     #1B1811;
+  --lt-ink-dim: #4A453A;
+  --lt-muted:   #8D8574;
+  --lt-line:    rgba(27,24,17,.12);
+  --lt-accent:  #DB0A40;
+  --lt-accent-ink: #fff;
+  --lt-safe:    #158A55;
+  --lt-warn:    #C56A00;
+  --lt-crop:    #C6294B;
+  --lt-mono:    ui-monospace,"SF Mono","Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;
 }
 
 * { box-sizing:border-box; margin:0; padding:0; }
-body { background:#fff; color:#333; font-family:system-ui,sans-serif; font-size:14px; min-height:100vh; display:flex; flex-direction:column; }
+body { background:var(--lt-bg); color:var(--lt-ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; font-size:14px; min-height:100vh; display:flex; flex-direction:column; }
 
-header { background:#1c1c1c; border-bottom:1px solid #2a2a2a; padding:14px 24px; }
-header h1 { font-size:18px; color:#fff; display:flex; align-items:center; gap:10px; }
-header h1 span { color:#e63030; }
-header p  { font-size:11px; color:#555; margin-top:4px; }
+header {
+  background:var(--lt-raised); border-bottom:1px solid var(--lt-line);
+  padding:14px 26px; display:flex; align-items:center; justify-content:space-between;
+  gap:16px; flex-wrap:wrap;
+}
+header .brand { display:flex; align-items:center; gap:12px; }
+header .mark {
+  width:30px; height:30px; border-radius:8px; background:var(--lt-accent); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12.5px; flex-shrink:0;
+}
+header h1 { font-size:15.5px; font-weight:700; letter-spacing:-.01em; color:var(--lt-ink); }
+header h1 span { display:none; }
+header .sub { font-size:11.5px; color:var(--lt-muted); margin-top:1px; }
+header .spec-chips { display:flex; gap:6px; flex-wrap:wrap; }
+header .spec-chips span {
+  font:600 10.5px/1 var(--lt-mono); letter-spacing:.02em; color:var(--lt-ink-dim);
+  background:var(--lt-surface); border:1px solid var(--lt-line); padding:6px 10px; border-radius:20px;
+}
 
-.workspace { display:flex; gap:12px; padding:12px; align-items:flex-start; flex:1; }
+.workspace { display:flex; gap:18px; padding:20px 22px; align-items:flex-start; flex:1; }
 .canvas-col { flex-shrink:0; display:flex; flex-direction:column; gap:10px; }
 
-.preview-label { display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#666; text-transform:uppercase; letter-spacing:.07em; margin-bottom:6px; }
-.preview-label label { display:flex; align-items:center; gap:5px; cursor:pointer; color:#aaa; }
-.preview-label input { accent-color:#00c864; }
+.preview-label { display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--lt-ink); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; font-weight:700; }
+.preview-label label { display:flex; align-items:center; gap:5px; cursor:pointer; color:var(--lt-muted); text-transform:none; letter-spacing:0; font-weight:500; }
+.preview-label input { accent-color:var(--lt-accent); }
 .toggles { display:flex; gap:14px; }
+
+.zone-legend { display:flex; gap:16px; flex-wrap:wrap; margin-top:10px; }
+.zone-legend span { display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--lt-ink-dim); }
+.zone-legend i { width:9px; height:9px; border-radius:50%; display:inline-block; flex-shrink:0; }
 
 /* ── Desktop canvas ── */
 #canvas-outer {
   position:relative; width:960px; height:540px;
-  border:1px solid #333; border-radius:4px; overflow:hidden; cursor:crosshair;
+  border:1px solid var(--lt-line); border-radius:14px; overflow:hidden; cursor:crosshair;
   background:repeating-conic-gradient(#1a1a1a 0% 25%,#222 0% 50%) 0 0/20px 20px;
+  box-shadow:0 18px 40px -24px rgba(27,24,17,.35);
 }
 #canvas-outer.dragging { cursor:grabbing; }
 #main-canvas { display:block; position:absolute; top:0; left:0; }
 .desk-layer { position:absolute; inset:0; pointer-events:none; display:none; }
 #drop-hint {
   position:absolute; inset:0; display:flex; flex-direction:column;
-  align-items:center; justify-content:center; gap:10px; color:#444; pointer-events:none;
+  align-items:center; justify-content:center; gap:10px; color:#5a5a5a; pointer-events:none;
 }
 #drop-hint .icon { font-size:40px; }
-.ruler { display:flex; justify-content:space-between; font-size:9px; color:#444; margin-top:4px; width:960px; }
-.canvas-hint { font-size:11px; color:#444; margin-top:5px; }
+.ruler { display:flex; justify-content:space-between; font-size:9px; color:var(--lt-muted); margin-top:4px; width:100%; font-family:var(--lt-mono); }
+.canvas-hint { font-size:11px; color:var(--lt-muted); margin-top:5px; }
 
-/* ── Device row ── */
-.device-row { display:flex; flex-direction:row; flex-wrap:wrap; gap:20px; align-items:flex-start; }
-.device-col { display:flex; flex-direction:column; gap:20px; align-items:flex-start; }
-.section-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#888; margin-top:10px; }
-.device { display:flex; flex-direction:column; gap:6px; }
-.device-label { font-size:11px; color:#666; text-transform:uppercase; letter-spacing:.07em; display:flex; align-items:center; gap:8px; }
-.dev-badge { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
+/* ── Geräte-Vorschau: einheitliches Kachel-Raster, Mobile zuerst ── */
+.section-title {
+  font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--lt-ink);
+  margin-top:6px; display:flex; align-items:center; gap:8px;
+}
+.section-title .count { font-weight:500; color:var(--lt-muted); text-transform:none; letter-spacing:0; font-family:var(--lt-mono); font-size:10.5px; }
+.preview-grid-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-top:24px; }
+.preview-grid-head .toggles { font-size:11px; }
+/* Zwei Reihen, bündig mit der Canvas-Breite darüber: 3 Spalten für die
+   Mobil-Formate, 2 Spalten für die großen Formate – beide Reihen strecken
+   sich über die volle Breite statt (wie vorher) auf eine feste Kachelgröße
+   gedeckelt zu sein. */
+.preview-grid { display:grid; gap:20px; margin-top:12px; }
+.preview-grid--small { grid-template-columns:repeat(3,1fr); }
+.preview-grid--large { grid-template-columns:repeat(2,1fr); margin-top:20px; }
+.device-tile {
+  position:relative; aspect-ratio:1/1; border-radius:14px; overflow:hidden; cursor:zoom-in;
+  border:1px solid var(--lt-line); background:repeating-conic-gradient(#1a1a1a 0% 25%,#222 0% 50%) 0 0/14px 14px;
+  box-shadow:0 8px 18px -16px rgba(27,24,17,.35); transition:box-shadow .15s;
+  display:flex; align-items:center; justify-content:center;
+}
+.preview-grid--large .device-tile { aspect-ratio:16/9; } /* TV/Wide Hero: weniger Letterboxing als im Quadrat */
+.device-tile:hover { box-shadow:0 16px 32px -16px rgba(27,24,17,.55); }
+.device-tile::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:4px; z-index:6;
+  background:var(--tile-accent,var(--lt-accent));
+}
+/* Zentrierung kommt vom Flexbox-Parent (.device-tile bzw. #device-lightbox-content),
+   nicht von position:absolute + %-Koordinaten – das ist robust gegenüber dem
+   Umhängen in die Lightbox (fester Bezugsrahmen = viewport hätte sonst dazu
+   geführt, dass der skalierte Inhalt aus dem Bild wandert). */
+.tile-stage { transform-origin:center center; }
+.tile-badge {
+  position:absolute; top:10px; left:10px; right:10px; z-index:5;
+  display:flex; align-items:center; gap:7px;
+  background:rgba(10,10,14,.72); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  padding:6px 9px; border-radius:20px; color:#fff; pointer-events:none;
+}
+.tile-icon {
+  display:inline-block; height:11px; width:calc(11px * var(--shape-ratio,1));
+  border:1.6px solid var(--tile-accent,#fff); border-radius:2px; flex-shrink:0; box-sizing:border-box;
+}
+.tile-name { font-size:11px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tile-dim { margin-left:auto; font:600 9.5px/1 var(--lt-mono); color:rgba(255,255,255,.68); white-space:nowrap; flex-shrink:0; }
+.expand-hint {
+  position:absolute; bottom:10px; right:10px; z-index:5; opacity:0; transition:opacity .15s; pointer-events:none;
+  background:rgba(10,10,14,.72); color:#fff; font-size:10px; font-weight:600; padding:4px 9px; border-radius:12px;
+}
+.device-tile:hover .expand-hint { opacity:1; }
 
 /* Shared crop container */
 .dev-wrap {
   position:relative; overflow:hidden;
-  border:1px solid #333; border-radius:4px;
+  border:1px solid var(--lt-line); border-radius:10px; transition:box-shadow .15s;
   background:repeating-conic-gradient(#1a1a1a 0% 25%,#222 0% 50%) 0 0/10px 10px;
 }
 .dev-bg   { position:absolute; display:none; }
@@ -104,38 +181,148 @@ header p  { font-size:11px; color:#555; margin-top:4px; }
 .phone-tab-label.red { color:#e63030; }
 
 /* ── Sidebar ── */
-.controls { display:flex; flex-direction:column; gap:14px; min-width:260px; max-width:260px; }
-.card { background:#fff; border:1px solid #e5e5e5; border-radius:6px; padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
-.card h2 { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#999; }
-.hint { font-size:11px; color:#888; line-height:1.5; }
-button.primary { background:#e63030; color:#fff; border:none; border-radius:5px; padding:9px; font-size:13px; font-weight:600; cursor:pointer; width:100%; transition:background .15s; }
-button.primary:hover { background:#c82020; }
+.controls { display:flex; flex-direction:column; gap:16px; min-width:280px; max-width:280px; }
+.card {
+  background:var(--lt-surface); border:1px solid var(--lt-line); border-radius:14px;
+  padding:15px 16px; display:flex; flex-direction:column; gap:10px;
+  box-shadow:0 8px 18px -16px rgba(27,24,17,.3);
+}
+.card h2 { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--lt-ink); }
+.hint { font-size:11.5px; color:var(--lt-muted); line-height:1.5; }
+button.primary { background:var(--lt-accent); color:#fff; border:none; border-radius:9px; padding:10px; font-size:13px; font-weight:700; cursor:pointer; width:100%; transition:filter .15s; }
+button.primary:hover { filter:brightness(.9); }
 .field { display:flex; flex-direction:column; gap:4px; }
-.field label { font-size:11px; color:#666; }
+.field label { font-size:11px; color:var(--lt-muted); }
 .stv-badge { display:inline-block; width:fit-content; background:#e63030; color:#fff; font-family:var(--f-body); font-weight:600; font-size:14px; line-height:1; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:3px; }
 .stv-badge:empty { display:none; }
-.field input, .field textarea { background:#f5f5f5; border:1px solid #e0e0e0; border-radius:4px; padding:7px 9px; font-size:13px; color:#222; font-family:inherit; outline:none; transition:border-color .15s; resize:vertical; }
-.field textarea { min-height:58px; font-size:12px; line-height:1.5; }
-.field input:focus, .field textarea:focus { border-color:#aaa; }
+.field input, .field textarea {
+  background:var(--lt-sunk); border:1px solid var(--lt-line); border-radius:9px;
+  padding:8px 11px; font-size:13px; color:var(--lt-ink); font-family:inherit; outline:none;
+  transition:border-color .15s; resize:vertical;
+}
+.field textarea { min-height:58px; font-size:12px; line-height:1.55; }
+.field input:focus, .field textarea:focus { border-color:var(--lt-accent); }
 table.zinfo { width:100%; font-size:11px; border-collapse:collapse; }
-table.zinfo td { padding:3px 0; color:#888; }
-table.zinfo td:first-child { width:96px; font-weight:600; }
-.exp-btn { background:#00773c; color:#fff; border:none; border-radius:5px; padding:9px 12px; font-size:12px; font-weight:600; cursor:pointer; width:100%; text-align:left; display:flex; align-items:center; gap:8px; transition:background .15s; }
-.exp-btn:hover:not(:disabled) { background:#005a2d; }
-.exp-btn:disabled { opacity:.4; cursor:not-allowed; }
+table.zinfo td { padding:3px 0; color:var(--lt-muted); }
+table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim); }
+
+/* Requirements card: compact numbered/icon rows */
+.req { padding:2px 0 0; gap:0; }
+.req-row { display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--lt-line); }
+.req-row:first-child { border-top:none; padding-top:2px; }
+.req-row .ico {
+  width:22px; height:22px; border-radius:50%; flex-shrink:0; margin-top:1px;
+  background:var(--lt-sunk); display:flex; align-items:center; justify-content:center;
+  font:800 11px/1 var(--lt-mono); color:var(--lt-accent);
+}
+.req-row .txt b { display:block; font-size:12.5px; margin-bottom:2px; color:var(--lt-ink); }
+.req-row .txt span { font-size:11.5px; color:var(--lt-muted); line-height:1.45; }
+
+/* Export: große, prominente Leiste direkt unter dem Cropping-Ausschnitt */
+.export-bar {
+  display:flex; align-items:center; gap:28px; margin-top:14px;
+  background:linear-gradient(135deg,rgba(219,10,64,.09),rgba(219,10,64,.03));
+  border:1.5px solid rgba(219,10,64,.35); border-radius:16px;
+  padding:20px 26px; box-shadow:0 16px 34px -22px rgba(219,10,64,.45);
+}
+.export-bar-info { flex:1 1 auto; min-width:0; }
+.export-bar-info .hint { margin-top:10px; max-width:60ch; }
+.gauge { height:8px; border-radius:5px; background:var(--lt-sunk); overflow:hidden; }
+.gauge i { display:block; height:100%; background:var(--lt-safe); width:0%; transition:width .2s,background .2s; }
+.gauge-row { display:flex; justify-content:space-between; font-size:12.5px; color:var(--lt-ink-dim); font-weight:600; margin-bottom:7px; }
+.gauge-row .mono { font-family:var(--lt-mono); color:var(--lt-accent); font-weight:700; }
+
+.exp-btn {
+  background:var(--lt-accent); color:#fff; border:none; border-radius:12px; padding:18px 24px;
+  font-size:16px; font-weight:800; cursor:pointer; text-align:left; flex-shrink:0; min-width:300px;
+  display:flex; flex-direction:column; align-items:flex-start; gap:8px;
+  transition:filter .15s,transform .1s; box-shadow:0 12px 26px -12px rgba(219,10,64,.6);
+}
+.exp-btn:hover:not(:disabled) { filter:brightness(.93); }
+.exp-btn:active:not(:disabled) { transform:scale(.99); }
+.exp-btn:disabled { opacity:.4; cursor:not-allowed; box-shadow:none; }
+.exp-size-tag {
+  font:600 11px/1 var(--lt-mono); letter-spacing:.02em; background:rgba(255,255,255,.2);
+  padding:6px 9px; border-radius:20px; white-space:nowrap; flex-shrink:0;
+}
 .exp-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+
+/* Titel- & Text-Eingabe: großer, eindeutiger CTA-Button (gleiche Bildsprache
+   wie der Export-Button), damit sofort klar ist: hier wird Text eingegeben. */
+.text-entry-card { border-color:rgba(219,10,64,.3); }
+.text-entry-btn {
+  width:100%; background:var(--lt-accent); color:#fff; border:none; border-radius:12px;
+  padding:16px 18px; cursor:pointer; text-align:left; display:flex; align-items:center; gap:14px;
+  box-shadow:0 10px 22px -12px rgba(219,10,64,.55); transition:filter .15s,transform .1s;
+  animation:text-entry-pulse 2.6s ease-in-out infinite;
+}
+.text-entry-btn:hover { filter:brightness(.94); }
+.text-entry-btn:active { transform:scale(.99); }
+.text-entry-icon {
+  width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.22); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0;
+}
+.text-entry-body { min-width:0; display:flex; flex-direction:column; gap:3px; flex:1; }
+.text-entry-cta { font-size:15.5px; font-weight:800; color:#fff; line-height:1.25; }
+.text-entry-preview {
+  font-size:11.5px; font-weight:600; color:rgba(255,255,255,.8);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.text-entry-chevron { color:#fff; font-size:19px; flex-shrink:0; opacity:.9; }
+@keyframes text-entry-pulse {
+  0%,100% { box-shadow:0 10px 22px -12px rgba(219,10,64,.55); }
+  50%     { box-shadow:0 10px 26px -10px rgba(219,10,64,.85); }
+}
+@media (prefers-reduced-motion: reduce) { .text-entry-btn { animation:none; } }
+
+/* Titel- & Text-Eingabe: Modal */
+#text-modal {
+  position:fixed; inset:0; background:rgba(27,24,17,.55); backdrop-filter:blur(3px);
+  display:none; align-items:center; justify-content:center; z-index:110; padding:24px;
+}
+#text-modal.open { display:flex; }
+#text-modal-panel {
+  background:var(--lt-surface); border-radius:16px; padding:20px; width:100%; max-width:440px;
+  max-height:88vh; overflow-y:auto; display:flex; flex-direction:column; gap:12px;
+  box-shadow:0 30px 70px -20px rgba(27,24,17,.5);
+}
+.text-modal-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:2px; }
+.text-modal-head h2 { font-size:15px; font-weight:800; color:var(--lt-ink); }
+#text-modal-close {
+  width:32px; height:32px; border-radius:50%; background:var(--lt-sunk); border:none;
+  color:var(--lt-ink); font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
 .ctrl { display:flex; flex-direction:column; gap:4px; }
-.ctrl-row { display:flex; justify-content:space-between; font-size:11px; color:#777; }
-.ctrl-row b { color:#222; font-weight:600; }
-.ctrl input[type=range] { width:100%; accent-color:#00c864; }
-.zoom-input-wrap { display:flex; align-items:center; gap:4px; color:#777; }
+.ctrl-row { display:flex; justify-content:space-between; font-size:11px; color:var(--lt-muted); }
+.ctrl-row b { color:var(--lt-ink); font-weight:600; font-family:var(--lt-mono); }
+.ctrl input[type=range] { width:100%; accent-color:var(--lt-accent); }
+.zoom-input-wrap { display:flex; align-items:center; gap:4px; color:var(--lt-muted); }
 .zoom-input-wrap input {
   width:58px; padding:2px 5px; text-align:right;
-  background:#f5f5f5; border:1px solid #e0e0e0; border-radius:4px;
-  font-size:11px; font-weight:600; color:#222; font-family:inherit; outline:none;
+  background:var(--lt-sunk); border:1px solid var(--lt-line); border-radius:6px;
+  font-size:11px; font-weight:600; color:var(--lt-ink); font-family:var(--lt-mono); outline:none;
 }
-.zoom-input-wrap input:focus { border-color:#aaa; }
+.zoom-input-wrap input:focus { border-color:var(--lt-accent); }
 .zoom-input-wrap input:disabled { opacity:.5; }
+
+/* ── Device lightbox (click any preview to expand) ── */
+#device-lightbox {
+  position:fixed; inset:0; background:rgba(27,24,17,.55); backdrop-filter:blur(3px);
+  display:none; align-items:center; justify-content:center; z-index:100; padding:40px;
+  cursor:zoom-out;
+}
+#device-lightbox.open { display:flex; }
+#device-lightbox-content { cursor:default; display:flex; align-items:center; justify-content:center; }
+#device-lightbox-close {
+  position:absolute; top:22px; right:26px; width:38px; height:38px; border-radius:50%;
+  background:var(--lt-surface); border:1px solid var(--lt-line); color:var(--lt-ink);
+  font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+#device-lightbox-tag {
+  position:absolute; top:26px; left:30px; font:600 11px/1 var(--lt-mono); letter-spacing:.04em;
+  color:#fff; background:rgba(27,24,17,.55); padding:8px 12px; border-radius:20px;
+}
+.tile-stage.expanded { cursor:zoom-out; }
 
 /* ═══════════════════════════════════════════════════
    STV WEB OVERLAY CSS (Noto Sans / Bull Text)
@@ -316,13 +503,48 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
 .tv-cat:nth-child(4) { background:linear-gradient(135deg,#2e2c28 0%,#191815 100%); }
 .tv-cat:nth-child(5) { background:linear-gradient(135deg,#28313b 0%,#161b21 100%); }
 .tv-cat:nth-child(6) { background:linear-gradient(135deg,#31292c 0%,#1b1618 100%); }
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE: Desktop nutzt die volle Breite (Canvas +
+   Smart TV werden per JS an die verfügbare Breite
+   angepasst, siehe resizeStage()). Ab 900px stapelt die
+   Sidebar unter statt neben die Vorschau; ab 480px werden
+   die Kleingeräte-Kacheln zusätzlich verkleinert, damit
+   nichts horizontal überläuft.
+   ═══════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .workspace { flex-direction:column; padding:14px; gap:20px; }
+  .canvas-col { width:100%; }
+  .controls { width:100%; max-width:none; min-width:0; }
+  header { padding:12px 16px; }
+  .export-bar { flex-direction:column; align-items:stretch; padding:18px; gap:16px; }
+  .exp-btn { min-width:0; width:100%; }
+  .preview-grid--small { grid-template-columns:repeat(2,1fr); }
+}
+@media (max-width: 480px) {
+  .workspace { padding:10px; gap:16px; }
+  header { padding:10px 14px; gap:10px; }
+  header .spec-chips span { font-size:9.5px; padding:5px 8px; }
+  .preview-grid { gap:10px; }
+  .preview-grid--small { grid-template-columns:repeat(2,1fr); }
+  .preview-grid--large { grid-template-columns:1fr; }
+  .tile-dim { display:none; } /* auf schmalen Kacheln hat der Gerätename Vorrang vor den Maßen */
+}
 </style>
 </head>
 <body>
 
 <header>
-  <h1><span>●</span> STV On – Hero Preview Tool</h1>
-  <p>Universal Base Asset · 3840 × 2160 · JPG · 300 ppi · sRGB · 8 Bit/Kanal · 3–12 MB (max. 20 MB)</p>
+  <div class="brand">
+    <span class="mark">on</span>
+    <div>
+      <h1>STV On · Hero Checker</h1>
+      <div class="sub">Universal Base Asset &middot; QA-Umgebung, nicht produktiv</div>
+    </div>
+  </div>
+  <div class="spec-chips">
+    <span>3840×2160</span><span>JPG</span><span>300&nbsp;ppi</span><span>sRGB</span><span>3–12&nbsp;MB</span>
+  </div>
 </header>
 
 <div class="workspace">
@@ -345,7 +567,7 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
           linear-gradient(180deg,rgba(21,22,25,.4) 0,transparent 20%),
           radial-gradient(100% 100% at 80.71% 0,transparent 41.5%,#151619 100%)"></div>
         <div id="desk-nav" class="desk-layer">
-          <div style="width:1920px;height:1080px;transform:scale(.5);transform-origin:top left;position:relative">
+          <div id="desk-nav-inner" style="width:1920px;height:1080px;transform:scale(.5);transform-origin:top left;position:relative">
             <!-- Netzwerk-Leiste -->
             <div style="height:48px;background:#0c0c0e;display:flex;align-items:center;justify-content:center;gap:64px;border-bottom:1px solid rgba(255,255,255,.06)">
               <img src="https://res.cloudinary.com/hhhkasdw4/image/upload/v1773693837/streaming-platform/web/stv/servus-logo.svg" height="19" alt="Servus" style="opacity:.65">
@@ -377,7 +599,7 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
           </div>
         </div>
         <div id="desk-text" class="desk-layer">
-          <div class="stv" style="width:1920px;height:1080px;transform:scale(.5);transform-origin:top left;position:relative">
+          <div id="desk-text-inner" class="stv" style="width:1920px;height:1080px;transform:scale(.5);transform-origin:top left;position:relative">
             <div class="desk-content">
               <div class="desk-group">
                 <div class="desk-texts">
@@ -409,18 +631,45 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
       </div>
       <div class="ruler"><span>0</span><span>960</span><span>1920 (Mitte)</span><span>2880</span><span>3840</span></div>
       <div class="canvas-hint">Ziehen: Bild verschieben · Scrollrad: Zoom · Crops immer mittig (c_fill)</div>
+      <div class="zone-legend">
+        <span><i style="background:#C6294B"></i>Crop-Zone · 270&nbsp;px oben/unten</span>
+        <span><i style="background:#158A55"></i>Art Safe Area</span>
+        <span><i style="background:#C56A00"></i>UI-Bereich (Plattform)</span>
+      </div>
     </div>
 
-    <!-- Kleine Devices: Web Mobile + iPhone + Tablet -->
-    <div class="section-title">Kleine Devices</div>
-    <div class="device-row">
+    <!-- Export: groß, direkt unter dem Cropping-Ausschnitt -->
+    <div class="export-bar">
+      <div class="export-bar-info">
+        <div class="gauge-row"><span id="exp-gauge-tag">Geschätzte Dateigröße</span><span class="mono" id="exp-gauge-label">–</span></div>
+        <div class="gauge"><i id="exp-gauge-fill"></i></div>
+        <p class="hint">JPG, 300 ppi, sRGB, 8 Bit/Kanal, größtmögliche Auflösung des Originalbilds (mind. 3840 × 2160 px). Zieldateigröße 3–12 MB ideal (max. 20 MB). Enthält nur das Bild – kein Text, keine Logos. Dateiname: TITEL_ServusTVON.jpg</p>
+      </div>
+      <button class="exp-btn" id="exp-d" disabled onclick="exportHero()">
+        <span>Diesen Bildausschnitt exportieren</span>
+        <span class="exp-size-tag" id="exp-size">3840 × 2160</span>
+      </button>
+    </div>
+
+    <!-- Geräte-Vorschau: einheitliches Kachel-Raster, Mobile-Geräte zuerst -->
+    <div class="preview-grid-head">
+      <div class="section-title">Geräte-Vorschau <span class="count">5 Formate</span></div>
+      <div class="toggles">
+        <label><input type="checkbox" id="show-tvui" checked> TV-Oberfläche</label>
+        <label><input type="checkbox" id="show-hd" checked> HD-Badge</label>
+      </div>
+    </div>
+    <div class="preview-grid preview-grid--small">
 
       <!-- Web Mobile: 430×932 screen, 36px nav + 670px hero → display at 50% = 215×(18+335) -->
-      <div class="device">
-        <div class="device-label">
-          <span class="dev-badge" style="background:#c864ff"></span>
-          Web Mobile <span style="color:#444;font-weight:400">430 × 670</span>
+      <div class="device-tile" style="--tile-accent:#c864ff" onclick="openDeviceLightbox(document.getElementById('stage-wmob'),event)">
+        <div class="tile-badge">
+          <span class="tile-icon" style="--shape-ratio:.64"></span>
+          <span class="tile-name">Web Mobile</span>
+          <span class="tile-dim">430×670</span>
         </div>
+        <span class="expand-hint">Vergrößern ↗</span>
+        <div class="tile-stage" id="stage-wmob" data-name="Web Mobile · 430×670">
         <div style="width:215px;border:1px solid #333;border-radius:4px;overflow:hidden">
           <!-- Brand nav bar: 430×36 native → 215×18 display -->
           <div style="width:215px;height:18px;overflow:hidden;background:#131313">
@@ -467,15 +716,19 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
             </div>
           </div>
         </div>
-      </div>
+        </div><!-- /tile-stage -->
+      </div><!-- /device-tile -->
 
       <!-- iPhone 16 Pro Max native: 440×956 at 50% = 220×478 -->
       <!-- Hero crop within: 440×740, below Dynamic Island (59px→30px) -->
-      <div class="device">
-        <div class="device-label">
-          <span class="dev-badge" style="background:#ff9050"></span>
-          iOS nativ <span style="color:#444;font-weight:400">iPhone 16 Pro Max</span>
+      <div class="device-tile" style="--tile-accent:#ff9050" onclick="openDeviceLightbox(document.getElementById('stage-ios'),event)">
+        <div class="tile-badge">
+          <span class="tile-icon" style="--shape-ratio:.6"></span>
+          <span class="tile-name">iOS nativ</span>
+          <span class="tile-dim">iPhone 16 Pro Max</span>
         </div>
+        <span class="expand-hint">Vergrößern ↗</span>
+        <div class="tile-stage" id="stage-ios" data-name="iOS nativ · iPhone 16 Pro Max">
 
         <div id="phone-frame">
           <!-- Dynamic Island -->
@@ -536,14 +789,18 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
             </div>
           </div>
         </div>
-      </div>
+        </div><!-- /tile-stage -->
+      </div><!-- /device-tile -->
 
       <!-- Tablet 768×500 → 384×250 at 50% -->
-      <div class="device">
-        <div class="device-label">
-          <span class="dev-badge" style="background:#00c8ff"></span>
-          Tablet <span style="color:#444;font-weight:400">768 × 500</span>
+      <div class="device-tile" style="--tile-accent:#00c8ff" onclick="openDeviceLightbox(document.getElementById('stage-tab'),event)">
+        <div class="tile-badge">
+          <span class="tile-icon" style="--shape-ratio:1.54"></span>
+          <span class="tile-name">Tablet</span>
+          <span class="tile-dim">768×500</span>
         </div>
+        <span class="expand-hint">Vergrößern ↗</span>
+        <div class="tile-stage" id="stage-tab" data-name="Tablet · 768×500">
         <div class="dev-wrap" style="width:384px;height:250px">
           <img id="tab-bg" class="dev-bg" alt="">
           <div class="dev-grad" style="background:
@@ -573,22 +830,20 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
             </div>
           </div>
         </div>
-      </div>
-    </div><!-- /device-row -->
+        </div><!-- /tile-stage -->
+      </div><!-- /device-tile -->
+    </div><!-- /preview-grid--small -->
 
-    <!-- Große Devices: Smart TV + Wide Hero -->
-    <div class="section-title">Große Devices</div>
-    <div class="device-col">
-
+    <div class="preview-grid preview-grid--large">
       <!-- Smart TV -->
-      <div class="device">
-        <div class="preview-label">
-          <span>Smart TV <span style="color:#444;font-weight:400">1920 × 1080</span></span>
-          <div class="toggles">
-            <label><input type="checkbox" id="show-tvui" checked> Oberfläche</label>
-            <label><input type="checkbox" id="show-hd" checked> HD-Badge</label>
-          </div>
+      <div class="device-tile" style="--tile-accent:#ff6432" onclick="openDeviceLightbox(document.getElementById('stage-tv'),event)">
+        <div class="tile-badge">
+          <span class="tile-icon" style="--shape-ratio:1.78"></span>
+          <span class="tile-name">Smart TV</span>
+          <span class="tile-dim">1920×1080</span>
         </div>
+        <span class="expand-hint">Vergrößern ↗</span>
+        <div class="tile-stage" id="stage-tv" data-name="Smart TV · 1920×1080">
         <div id="tv-outer" style="width:960px;height:540px;position:relative;overflow:hidden;background:#181B20;border-radius:4px;border:1px solid #333">
           <img id="tv-bg" class="dev-bg" alt="">
           <div style="position:absolute;inset:0;pointer-events:none;background:
@@ -596,7 +851,7 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
             linear-gradient(90deg,rgba(15,18,22,.8) 0%,rgba(15,18,22,.3) 30%,transparent 58%),
             linear-gradient(0deg,#0f1216 0%,rgba(15,18,22,.96) 16%,rgba(15,18,22,.5) 34%,transparent 58%)"></div>
           <div style="position:absolute;inset:0;overflow:hidden">
-            <div class="stv" style="width:1920px;height:1080px;transform:scale(.5);transform-origin:top left;position:relative">
+            <div id="tv-inner" class="stv" style="width:1920px;height:1080px;transform:scale(.5);transform-origin:top left;position:relative">
               <!-- UI-Chrome (per Checkbox ausblendbar) -->
               <div id="tv-chrome" style="position:absolute;inset:0">
                 <div class="tv-home-pill">
@@ -645,15 +900,18 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
             </div>
           </div>
         </div>
-      </div>
+        </div><!-- /tile-stage -->
+      </div><!-- /device-tile -->
 
-
-    <!-- Wide Hero 2000×825 -->
-    <div class="device">
-      <div class="device-label">
-        <span class="dev-badge" style="background:#50d250"></span>
-        Wide Hero <span style="color:#444;font-weight:400">2000 × 825</span>
-      </div>
+      <!-- Wide Hero 2000×825 -->
+      <div class="device-tile" style="--tile-accent:#50d250" onclick="openDeviceLightbox(document.getElementById('stage-wide'),event)">
+        <div class="tile-badge">
+          <span class="tile-icon" style="--shape-ratio:2.4"></span>
+          <span class="tile-name">Wide Hero</span>
+          <span class="tile-dim">2000×825</span>
+        </div>
+        <span class="expand-hint">Vergrößern ↗</span>
+        <div class="tile-stage" id="stage-wide" data-name="Wide Hero · 2000×825">
       <!-- Wrapper: Brand-Leiste (36px nativ) + Bildbereich (825px nativ), beide bei 0.4 scale -->
       <div style="width:800px;background:#0c0c0e;display:flex;flex-direction:column">
         <!-- Brand-Leiste: 36px nativ × 0.4 = 14.4px display -->
@@ -714,18 +972,18 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
           </div>
         </div>
       </div>
-    </div>
-    </div><!-- /device-col -->
+        </div><!-- /tile-stage -->
+      </div><!-- /device-tile -->
+    </div><!-- /preview-grid -->
   </div><!-- /canvas-col -->
 
   <!-- Sidebar -->
   <div class="controls">
 
-    <div class="card">
-      <h2>Artwork Requirements</h2>
-      <p class="hint"><b style="color:#333">01 · Image specs</b><br>UBA-PSD-Vorlage nutzen. Export als ein JPG, 3840 × 2160, 300 ppi, sRGB, 8 Bit/Kanal. 3–12 MB ideal (min. 3 MB, max. 20 MB).</p>
-      <p class="hint"><b style="color:#333">02 · No text or logos</b><br>Keine Logos, Titelgrafiken, Credits oder Copyright-Hinweise im Bild – das ergänzt die Plattform automatisch.</p>
-      <p class="hint"><b style="color:#333">03 · Full frame</b><br>Motiv zentriert halten, Bildränder sauber ausarbeiten – jeder Bereich des Bilds kann sichtbar werden.</p>
+    <div class="card req">
+      <h2 style="padding:13px 0 0 2px">Artwork Requirements</h2>
+      <div class="req-row"><span class="ico">1</span><div class="txt"><b>Kein Text/Logo</b><span>Keine Logos, Titelgrafiken, Credits oder Copyright-Hinweise – das ergänzt die Plattform</span></div></div>
+      <div class="req-row"><span class="ico">2</span><div class="txt"><b>Vollformat</b><span>Motiv zentriert halten, Bildränder sauber ausarbeiten</span></div></div>
     </div>
 
     <div class="card">
@@ -734,7 +992,6 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
       <button class="primary" onclick="document.getElementById('file-input').click()">📂 Bild auswählen</button>
       <p class="hint">oder direkt auf die Vorschau ziehen</p>
     </div>
-
 
     <div class="card">
       <h2>Bildposition</h2>
@@ -756,41 +1013,59 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
       <p class="hint">Bild kann nicht kleiner als 3840 × 2160 skaliert oder aus dem Canvas-Bereich geschoben werden.</p>
     </div>
 
-    <div class="card">
-      <h2>Metadaten</h2>
-      <div class="field">
-        <label style="display:flex;justify-content:space-between">Titel <span id="title-count" style="color:#aaa;font-weight:400">14 / 50</span></label>
-        <input type="text" id="f-title" value="Beispiel Titel" maxlength="50" oninput="updateText();document.getElementById('title-count').textContent=this.value.length+' / 50'">
-      </div>
-      <div class="field">
-        <label>Badge <span style="color:#444;font-size:10px">(leer = ausgeblendet)</span></label>
-        <input type="text" id="f-badge" value="NEUE FOLGE" oninput="updateText()">
-      </div>
-      <div class="field">
-        <label>Metadaten <span style="color:#444;font-size:10px">(z. B. „1 Std. 28 Min.")</span></label>
-        <input type="text" id="f-meta" value="1 Std. 28 Min." oninput="updateText()">
-      </div>
-      <div class="field">
-        <label style="display:flex;justify-content:space-between">Beschreibung <span id="desc-count" style="color:#aaa;font-weight:400"></span></label>
-        <textarea id="f-desc" rows="14" maxlength="500" oninput="updateText();document.getElementById('desc-count').textContent=this.value.length+' / 500'">Dies ist ein Beispieltext, der genau die richtige Länge hat. Er zeigt, wie viel Inhalt in diesem Bereich Platz findet und wie Beschreibungen im Layout wirken. Ein guter Text informiert, weckt Interesse und bringt den Inhalt präzise auf den Punkt. Mehrere Zeilen helfen dabei, die Darstellung realistisch einzuschätzen. Diese Vorschau zeigt, wie der Text im Hero-Bereich erscheint und welche Länge sich für unterschiedliche Formate eignet. So lässt sich die optimale Textmenge beurteilen.</textarea>
-      </div>
-    </div>
-
-
-    <div class="card">
-      <h2>Exportieren</h2>
-      <button class="exp-btn" id="exp-d" disabled onclick="exportHero()">
-        <span class="exp-dot" style="background:#888"></span>
-        <span>UBA 16:9 · <b id="exp-size">3840 × 2160</b></span>
+    <div class="card text-entry-card">
+      <h2>Titel &amp; Text</h2>
+      <button class="text-entry-btn" onclick="openTextModal()">
+        <span class="text-entry-icon">✎</span>
+        <span class="text-entry-body">
+          <span class="text-entry-cta">Hier Titel &amp; Text bearbeiten</span>
+          <span class="text-entry-preview">Aktuell: <span id="text-entry-preview">Beispiel Titel</span></span>
+        </span>
+        <span class="text-entry-chevron">›</span>
       </button>
-      <p class="hint">Exportiert als JPG, 300 ppi, sRGB, 8 Bit/Kanal, in der größtmöglichen Auflösung des Originalbilds (mind. 3840 × 2160 px). Zieldateigröße 3–12 MB ideal (max. 20 MB). Enthält nur das Bild – kein Text, keine Logos. Dateiname: TITEL_ServusTVON.jpg</p>
     </div>
 
   </div>
 </div>
 
+<!-- Titel- & Text-Eingabe: Klick auf den Sidebar-Button öffnet dieses Fenster.
+     Die Felder sind dieselben Original-Elemente (gleiche IDs) wie zuvor in der
+     Sidebar, Eingaben übernehmen sich also weiterhin sofort ins Preview. -->
+<div id="text-modal" onclick="if(event.target===this) closeTextModal()">
+  <div id="text-modal-panel">
+    <div class="text-modal-head">
+      <h2>Titel &amp; Text</h2>
+      <button id="text-modal-close" onclick="closeTextModal()" aria-label="Schließen">✕</button>
+    </div>
+    <div class="field">
+      <label style="display:flex;justify-content:space-between">Titel <span id="title-count" style="color:#aaa;font-weight:400">14 / 50</span></label>
+      <input type="text" id="f-title" value="Beispiel Titel" maxlength="50" oninput="updateText();document.getElementById('title-count').textContent=this.value.length+' / 50'">
+    </div>
+    <div class="field">
+      <label>Badge <span style="color:#444;font-size:10px">(leer = ausgeblendet)</span></label>
+      <input type="text" id="f-badge" value="NEUE FOLGE" oninput="updateText()">
+    </div>
+    <div class="field">
+      <label>Metadaten <span style="color:#444;font-size:10px">(z. B. „1 Std. 28 Min.")</span></label>
+      <input type="text" id="f-meta" value="1 Std. 28 Min." oninput="updateText()">
+    </div>
+    <div class="field">
+      <label style="display:flex;justify-content:space-between">Beschreibung <span id="desc-count" style="color:#aaa;font-weight:400"></span></label>
+      <textarea id="f-desc" rows="10" maxlength="500" oninput="updateText();document.getElementById('desc-count').textContent=this.value.length+' / 500'">Dies ist ein Beispieltext, der genau die richtige Länge hat. Er zeigt, wie viel Inhalt in diesem Bereich Platz findet und wie Beschreibungen im Layout wirken. Ein guter Text informiert, weckt Interesse und bringt den Inhalt präzise auf den Punkt. Mehrere Zeilen helfen dabei, die Darstellung realistisch einzuschätzen. Diese Vorschau zeigt, wie der Text im Hero-Bereich erscheint und welche Länge sich für unterschiedliche Formate eignet. So lässt sich die optimale Textmenge beurteilen.</textarea>
+    </div>
+  </div>
+</div>
+
+<!-- Device-Lightbox: Klick auf eine Vorschau vergrößert sie, Klick daneben / Esc schließt -->
+<div id="device-lightbox" onclick="if(event.target===this) closeDeviceLightbox()">
+  <span id="device-lightbox-tag"></span>
+  <button id="device-lightbox-close" onclick="closeDeviceLightbox()" aria-label="Schließen">✕</button>
+  <div id="device-lightbox-content"></div>
+</div>
+
 <script>
-const CW=3840, CH=2160, S=.25;
+const CW=3840, CH=2160;
+let S=.25; // Anzeige-Skalierung; wird von resizeStage() an die verfügbare Breite angepasst
 
 // UBA-Sicherheitszonen (aus der offiziellen 3840×2160 PSD-Vorlage, Pixel-exakt)
 const CROP_TOP    = {x:0,    y:0,    w:3840, h:270};  // immer kappungsgefährdet
@@ -924,6 +1199,7 @@ function updateSliders(){
     const es=document.getElementById('exp-size');
     if(es) es.textContent=ew+' × '+eh;
   } catch(_) {}
+  scheduleExportEstimate();
 }
 
 function updateText() {
@@ -945,6 +1221,21 @@ function updateText() {
   document.getElementById('ti').textContent=t;
   document.getElementById('di').textContent=d;
   document.getElementById('bi').textContent=b;
+
+  const preview=document.getElementById('text-entry-preview');
+  if(preview) preview.textContent=t||'Ohne Titel';
+}
+
+function openTextModal(){
+  document.getElementById('text-modal').classList.add('open');
+  document.addEventListener('keydown', onTextModalKeydown);
+}
+function closeTextModal(){
+  document.getElementById('text-modal').classList.remove('open');
+  document.removeEventListener('keydown', onTextModalKeydown);
+}
+function onTextModalKeydown(e){
+  if(e.key==='Escape') closeTextModal();
 }
 
 outer.addEventListener('mousedown',e=>{
@@ -973,6 +1264,26 @@ outer.addEventListener('wheel',e=>{
   posX=mx-(mx-posX)*(zoom/prev); posY=my-(my-posY)*(zoom/prev);
   clampPos(); updateSliders(); render();
 },{passive:false});
+
+// Touch-Drag (ein Finger) fürs Repositionieren auf Mobilgeräten
+outer.addEventListener('touchstart',e=>{
+  if(!img || e.touches.length!==1) return;
+  const t=e.touches[0];
+  dragging=true; didDrag=false;
+  dragX0=t.clientX; dragY0=t.clientY; posX0=posX; posY0=posY;
+  outer.classList.add('dragging');
+},{passive:true});
+outer.addEventListener('touchmove',e=>{
+  if(!dragging || e.touches.length!==1) return;
+  e.preventDefault();
+  const t=e.touches[0];
+  const dx=t.clientX-dragX0, dy=t.clientY-dragY0;
+  if(Math.abs(dx)>3||Math.abs(dy)>3) didDrag=true;
+  posX=posX0+dx/S; posY=posY0+dy/S; clampPos(); updateSliders(); render();
+},{passive:false});
+outer.addEventListener('touchend',()=>{
+  dragging=false; outer.classList.remove('dragging');
+});
 
 document.getElementById('file-input').addEventListener('change',e=>loadFile(e.target.files[0]));
 // Datei-Drop auf der gesamten Seite akzeptieren
@@ -1030,6 +1341,7 @@ const zoomInput=document.getElementById('zoom-input');
 zoomInput.addEventListener('change',function(){
   const v=parseFloat(this.value);
   if(isNaN(v)) { updateSliders(); return; }
+  if(img && Math.round(zoom*100)===Math.round(v)) return; // Browser feuert 'change' erneut beim Blur, z.B. beim Klick auf Export – ohne echte Änderung nichts tun
   applyZoomPct(v);
   this.value=Math.round(zoom*100); // auf gültigen Wert zurückschreiben
 });
@@ -1082,15 +1394,18 @@ function setJpegDpi(dataUrl, dpi){
   }catch(_){ return dataUrl; }
 }
 
-function exportHero(){
-  if(!img) return;
-  const sx=-posX/zoom, sy=-posY/zoom, sw=CW/zoom, sh=CH/zoom;
-  const MAX_BYTES=20*1024*1024; // 20 MB (Spec: 3–12 MB ideal, 20 MB max)
-  const PREFIX='data:image/jpeg;base64,'.length;
-  let [ow,oh]=exportSize();
-  let dataUrl=null;
+const EXPORT_MAX_BYTES=20*1024*1024; // 20 MB (Spec: 3–12 MB ideal, 20 MB max)
+const EXPORT_PREFIX='data:image/jpeg;base64,'.length;
 
-  // Qualität schrittweise senken; reicht das nicht, Auflösung reduzieren (nie unter 3840 × 2160)
+// Baut den finalen Export-Canvas (Qualität schrittweise senken; reicht das
+// nicht, Auflösung reduzieren, nie unter 3840 × 2160). Wird sowohl für den
+// echten Export als auch für die live mitlaufende Größenschätzung genutzt,
+// damit beide immer denselben Wert liefern.
+function buildExportResult(){
+  const sx=-posX/zoom, sy=-posY/zoom, sw=CW/zoom, sh=CH/zoom;
+  let [ow,oh]=exportSize();
+  let dataUrl=null, bytes=0;
+
   outer:
   while(true){
     const out=document.createElement('canvas'); out.width=ow; out.height=oh;
@@ -1100,15 +1415,22 @@ function exportHero(){
     c.drawImage(img, sx, sy, sw, sh, 0, 0, ow, oh);
     for(let q=0.92; q>=0.5; q-=0.07){
       dataUrl=out.toDataURL('image/jpeg',q);
-      const bytes=Math.ceil((dataUrl.length-PREFIX)*3/4);
-      if(bytes<=MAX_BYTES) break outer;
+      bytes=Math.ceil((dataUrl.length-EXPORT_PREFIX)*3/4);
+      if(bytes<=EXPORT_MAX_BYTES) break outer;
     }
     if(ow<=CW) break; // Minimum erreicht → letzten Versuch (q=0.5) verwenden
     ow=Math.max(CW, Math.round(ow*0.85));
     oh=Math.round(ow*CH/CW);
   }
+  return {dataUrl, bytes};
+}
 
-  dataUrl=setJpegDpi(dataUrl, 300);
+function exportHero(){
+  if(!img) return;
+  clearTimeout(estimateTimer); // eine noch ausstehende Schätzung darf das Ergebnis nicht überschreiben
+  const {dataUrl:raw, bytes}=buildExportResult();
+  const dataUrl=setJpegDpi(raw, 300);
+  updateExportGauge(bytes, EXPORT_MAX_BYTES, 'Exportierte Dateigröße');
 
   const title=document.getElementById('f-title').value
     .trim().replace(/[\\/:*?"<>|]/g,'').replace(/\s+/g,'_')||'Hero';
@@ -1118,7 +1440,158 @@ function exportHero(){
   a.click();
 }
 
-renderCanvas();
+// Live-Schätzung: läuft entkoppelt vom eigentlichen Export, sobald sich Zoom,
+// Position oder Bild ändern (debounced, damit Drag/Slider nicht ruckeln).
+let estimateTimer=null;
+function scheduleExportEstimate(){
+  clearTimeout(estimateTimer);
+  estimateTimer=setTimeout(()=>{
+    if(!img) return;
+    const {bytes}=buildExportResult();
+    updateExportGauge(bytes, EXPORT_MAX_BYTES, 'Geschätzte Dateigröße');
+  }, 300);
+}
+
+function updateExportGauge(bytes, maxBytes, tag){
+  const fill=document.getElementById('exp-gauge-fill');
+  const label=document.getElementById('exp-gauge-label');
+  const tagEl=document.getElementById('exp-gauge-tag');
+  if(!fill||!label) return;
+  if(tag && tagEl) tagEl.textContent=tag;
+  const mb=bytes/1024/1024;
+  const pct=Math.max(4,Math.min(100,Math.round(bytes/maxBytes*100)));
+  fill.style.width=pct+'%';
+  fill.style.background = mb<=12 ? 'var(--lt-safe)' : (mb<=20 ? 'var(--lt-warn)' : 'var(--lt-crop)');
+  label.textContent=mb.toFixed(1)+' MB / '+Math.round(maxBytes/1024/1024)+' MB max';
+}
+
+/* ── Device-Lightbox: Klick auf eine Vorschau vergrößert sie an Ort und Stelle
+   (die Original-Elemente werden in den Overlay-Container umgehängt, damit
+   renderDevices()/updateText() unverändert weiterarbeiten). ── */
+function openDeviceLightbox(el, evt){
+  if(evt && evt.target.closest('input,label,.toggles')) return; // Toggles bleiben klickbar
+  const backdrop=document.getElementById('device-lightbox');
+  const holder=document.getElementById('device-lightbox-content');
+  const tag=document.getElementById('device-lightbox-tag');
+  el._ltOrigParent=el.parentNode;
+  el._ltOrigNext=el.nextSibling;
+  el.classList.add('expanded'); // verhindert, dass layoutDeviceTiles() den Raster-Fit während des Aufklappens neu setzt
+  el.style.transform='none'; // Raster-Fit-Skalierung zurücksetzen, bevor die native Größe gemessen wird
+  holder.appendChild(el);
+  tag.textContent=el.dataset.name||'';
+  backdrop.classList.add('open');
+  document.addEventListener('keydown', onLightboxKeydown);
+
+  requestAnimationFrame(()=>{
+    const rect=el.getBoundingClientRect();
+    const targetW=Math.min(window.innerWidth*0.82, 980);
+    const targetH=window.innerHeight*0.82;
+    const naturalW=rect.width, naturalH=rect.height;
+    let scale=Math.min(targetW/naturalW, targetH/naturalH);
+    scale=Math.min(scale, 4); // beliebig verkleinern, wenn nötig (z.B. TV 960px auf schmalem Mobil-Viewport) – nur nach oben deckeln
+    el.style.transform='scale('+scale.toFixed(3)+')';
+  });
+}
+function closeDeviceLightbox(){
+  const backdrop=document.getElementById('device-lightbox');
+  const holder=document.getElementById('device-lightbox-content');
+  const el=holder.firstElementChild;
+  if(el){
+    el.classList.remove('expanded');
+    el.style.transform='';
+    if(el._ltOrigNext) el._ltOrigParent.insertBefore(el, el._ltOrigNext);
+    else if(el._ltOrigParent) el._ltOrigParent.appendChild(el);
+  }
+  backdrop.classList.remove('open');
+  document.removeEventListener('keydown', onLightboxKeydown);
+  layoutDeviceTiles(); // Raster-Fit für die zurückgelegte Kachel wiederherstellen
+}
+function onLightboxKeydown(e){
+  if(e.key==='Escape') closeDeviceLightbox();
+}
+
+/* ── Responsive Stage: der Desktop-Editor-Canvas nutzt die verfügbare
+   Breite (voller Bildschirm auf großen Monitoren, volle Breite minus
+   Padding gestapelt auf Mobilgeräten). Die Nav/Hero-Text-Overlay-Ebene
+   ist fest auf 1920px-Breite ausgelegt, daher genügt der Skalierungsfaktor
+   W/1920. Die Geräte-Vorschau-Kacheln (Smart TV inklusive) werden separat
+   über layoutDeviceTiles() einheitlich in ihre Raster-Kachel eingepasst. ── */
+const deskNavInner=document.getElementById('desk-nav-inner');
+const deskTextInner=document.getElementById('desk-text-inner');
+
+function computeStageWidth(){
+  const workspace=document.querySelector('.workspace');
+  const controls=document.querySelector('.controls');
+  const wsStyle=getComputedStyle(workspace);
+  const isRow=wsStyle.flexDirection.indexOf('row')===0;
+  const padX=parseFloat(wsStyle.paddingLeft)+parseFloat(wsStyle.paddingRight);
+  let avail=workspace.clientWidth-padX;
+  if(isRow){
+    const gap=parseFloat(wsStyle.columnGap||wsStyle.gap)||18;
+    avail-=(controls.getBoundingClientRect().width+gap);
+  }
+  avail-=6;
+  const minW=isRow?720:280, maxW=1900;
+  const w=Math.max(minW,Math.min(maxW,avail));
+  return Math.round(w);
+}
+
+const canvasCol=document.querySelector('.canvas-col');
+function resizeStage(){
+  const w=computeStageWidth();
+  S=w/CW;
+  const h=Math.round(CH*S);
+
+  // canvas-col hat sonst keine feste Breite: ohne diese Zeile bestimmen die
+  // 1fr-Grid-Spalten der Geräte-Vorschau rückwärts die Spaltenbreite, statt
+  // sich bündig am UBA-Canvas auszurichten.
+  canvasCol.style.width=w+'px';
+  canvas.width=w; canvas.height=h;
+  outer.style.width=w+'px'; outer.style.height=h+'px';
+
+  const overlayScale=w/1920;
+  if(deskNavInner) deskNavInner.style.transform='scale('+overlayScale+')';
+  if(deskTextInner) deskTextInner.style.transform='scale('+overlayScale+')';
+
+  clampPos();
+  render();
+  layoutDeviceTiles();
+}
+
+/* ── Geräte-Vorschau-Kacheln: jedes Gerät hat seine eigene native
+   Render-Größe (unverändert, wie im Original-Markup). layoutDeviceTiles()
+   skaliert jede .tile-stage per transform so, dass sie in ihre quadratische
+   Raster-Kachel passt (contain, nicht croppen) – dadurch wirken alle
+   Geräte in der Übersicht ungefähr gleich groß, ihre echten Seitenverhältnisse
+   bleiben aber als Form sichtbar (Hochkant-Handy vs. breites TV/Wide Hero). ── */
+const TILE_NATIVE={
+  'stage-wmob':{w:215,  h:353},
+  'stage-ios': {w:220,  h:478},
+  'stage-tab': {w:384,  h:250},
+  'stage-tv':  {w:960,  h:540},
+  'stage-wide':{w:800,  h:344.4},
+};
+function layoutDeviceTiles(){
+  Object.keys(TILE_NATIVE).forEach(id=>{
+    const stage=document.getElementById(id);
+    if(!stage || stage.classList.contains('expanded')) return; // im Lightbox nicht überschreiben
+    const tile=stage.closest('.device-tile');
+    if(!tile) return;
+    const {w:nw,h:nh}=TILE_NATIVE[id];
+    const tw=tile.clientWidth, th=tile.clientHeight;
+    if(!tw||!th) return;
+    const scale=Math.min(tw/nw, th/nh)*0.92;
+    stage.style.transform='scale('+scale.toFixed(4)+')';
+  });
+}
+
+let resizeTimer=null;
+window.addEventListener('resize',()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(resizeStage,120);
+});
+
+resizeStage();
 updateText();
 const _desc=document.getElementById('f-desc');
 document.getElementById('desc-count').textContent=_desc.value.length+' / 500';
