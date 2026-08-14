@@ -1053,6 +1053,7 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
       </label>
       <p class="hint" id="expand-hint-text">Zeigt beim Rauszoomen die Bereiche außerhalb des Fotos, die generativ ergänzt werden. Aktuell noch eine Platzhalter-Füllung (weicher Kantenverlauf) statt echter KI.</p>
       <p class="hint expand-budget-line" id="expand-budget-line" hidden></p>
+      <p class="hint expand-budget-line is-exhausted" id="expand-error-line" hidden></p>
       <div class="expand-pct-row" id="expand-pct-row" hidden>
         <span>Wird ergänzt</span>
         <b id="expand-pct-val">0 %</b>
@@ -1317,6 +1318,7 @@ function updateExpandUI(){
 
 function toggleExpandMode(){
   if(!img) return;
+  clearExpandError();
   expandMode=document.getElementById('expand-mode').checked;
   const hint=document.getElementById('expand-hint-text');
   if(expandMode){
@@ -1369,8 +1371,18 @@ async function refreshExpandBudget(){
   } catch(_) {}
 }
 
+function showExpandError(msg){
+  const el=document.getElementById('expand-error-line');
+  el.textContent=msg;
+  el.hidden=false;
+}
+function clearExpandError(){
+  document.getElementById('expand-error-line').hidden=true;
+}
+
 async function generateExpand(){
   if(!img) return;
+  clearExpandError();
   const btn=document.getElementById('expand-generate');
   btn.disabled=true; btn.classList.add('is-loading');
   btn.querySelector('span').textContent='Generiere …';
@@ -1390,6 +1402,7 @@ async function generateExpand(){
       btn.classList.remove('is-loading'); btn.disabled=false;
       btn.querySelector('span').textContent='Jetzt generieren';
       await refreshExpandBudget();
+      showExpandError(gate.message || 'Generierung fehlgeschlagen (Fehler: '+(gate.error||res.status)+').');
       return;
     }
     isMock = gate.mode!=='real';
@@ -1398,6 +1411,7 @@ async function generateExpand(){
   } catch(_) {
     btn.classList.remove('is-loading'); btn.disabled=false;
     btn.querySelector('span').textContent='Jetzt generieren';
+    showExpandError('Verbindung zum Server fehlgeschlagen. Bitte erneut versuchen.');
     return;
   }
 

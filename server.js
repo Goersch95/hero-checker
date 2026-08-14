@@ -126,7 +126,14 @@ async function handleExpand(req, res) {
   if (!geminiRes.ok) {
     const errText = await geminiRes.text().catch(() => '');
     console.error('Gemini-Aufruf fehlgeschlagen:', geminiRes.status, errText.slice(0, 500));
-    return res.status(502).json({ error: 'provider_error', message: 'KI-Anbieter hat die Anfrage abgelehnt.' });
+    // Internes, passwortgeschütztes QA-Tool: die echte Provider-Fehlermeldung direkt
+    // zeigen spart das Nachschauen in den Coolify-Logs bei jedem Debugging-Schritt.
+    let providerMessage = null;
+    try { providerMessage = JSON.parse(errText).error?.message; } catch (_) {}
+    return res.status(502).json({
+      error: 'provider_error',
+      message: `KI-Anbieter hat die Anfrage abgelehnt (HTTP ${geminiRes.status}): ${providerMessage || errText.slice(0, 300) || 'unbekannter Fehler'}`,
+    });
   }
 
   const data = await geminiRes.json().catch(() => null);
