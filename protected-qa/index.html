@@ -1345,7 +1345,9 @@ function buildMockExpandCanvas(){
   c.restore();
   // scharfes Original obendrauf, an der vom Nutzer gewählten Position/Größe
   c.drawImage(img, posX, posY, iw, ih);
-  return out.toDataURL('image/png');
+  // JPEG statt PNG: als Seed-Bild für den Gemini-Call gesendet, dessen Inline-Daten-Limit
+  // bei 7 MB liegt - ein 3840×2160-PNG landet dort schnell drüber (unkomprimiert ~5-7 MB).
+  return out.toDataURL('image/jpeg', 0.9);
 }
 
 function fmtEuro(n){ return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
