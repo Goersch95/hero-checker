@@ -34,7 +34,7 @@ header p  { font-size:11px; color:#555; margin-top:4px; }
 
 /* ── Desktop canvas ── */
 #canvas-outer {
-  position:relative; width:960px; height:640px;
+  position:relative; width:960px; height:540px;
   border:1px solid #333; border-radius:4px; overflow:hidden; cursor:crosshair;
   background:repeating-conic-gradient(#1a1a1a 0% 25%,#222 0% 50%) 0 0/20px 20px;
 }
@@ -150,7 +150,7 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
 .stv-btn--icon      { background:var(--ghost); color:#fff; padding:10px; }
 .stv-btn-icon { width:22px; height:22px; flex-shrink:0; }
 
-/* Desktop (1920×1280 space) */
+/* Desktop (1920×1080 space, entspricht 1:1 der 3840×2160 UBA) */
 .desk-content { position:absolute; bottom:75px; left:75px; right:75px; }
 .desk-group   { display:flex; flex-direction:column; gap:16px; max-width:800px; }
 .desk-texts   { display:flex; flex-direction:column; gap:21px; }
@@ -322,6 +322,7 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
 
 <header>
   <h1><span>●</span> STV On – Hero Preview Tool</h1>
+  <p>Universal Base Asset · 3840 × 2160 · JPG · 300 ppi · sRGB · 8 Bit/Kanal · 3–12 MB (max. 20 MB)</p>
 </header>
 
 <div class="workspace">
@@ -332,19 +333,19 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
     <!-- Desktop -->
     <div>
       <div class="preview-label">
-        <span>Desktop <span style="color:#444;font-weight:400">1920 × 1280</span></span>
+        <span>Universal Base Asset <span style="color:#444;font-weight:400">3840 × 2160</span></span>
         <div class="toggles">
           <label><input type="checkbox" id="show-nav" checked> Navigation</label>
-          <label><input type="checkbox" id="show-focus" checked> Fokuszone</label>
+          <label><input type="checkbox" id="show-focus" checked> Sicherheitszonen</label>
         </div>
       </div>
       <div id="canvas-outer">
-        <canvas id="main-canvas" width="960" height="640"></canvas>
+        <canvas id="main-canvas" width="960" height="540"></canvas>
         <div id="desk-grad" class="desk-layer" style="background:
           linear-gradient(180deg,rgba(21,22,25,.4) 0,transparent 20%),
           radial-gradient(100% 100% at 80.71% 0,transparent 41.5%,#151619 100%)"></div>
         <div id="desk-nav" class="desk-layer">
-          <div style="width:1920px;height:1280px;transform:scale(.5);transform-origin:top left;position:relative">
+          <div style="width:1920px;height:1080px;transform:scale(.5);transform-origin:top left;position:relative">
             <!-- Netzwerk-Leiste -->
             <div style="height:48px;background:#0c0c0e;display:flex;align-items:center;justify-content:center;gap:64px;border-bottom:1px solid rgba(255,255,255,.06)">
               <img src="https://res.cloudinary.com/hhhkasdw4/image/upload/v1773693837/streaming-platform/web/stv/servus-logo.svg" height="19" alt="Servus" style="opacity:.65">
@@ -377,7 +378,7 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
           </div>
         </div>
         <div id="desk-text" class="desk-layer">
-          <div class="stv" style="width:1920px;height:1280px;transform:scale(.5);transform-origin:top left;position:relative">
+          <div class="stv" style="width:1920px;height:1080px;transform:scale(.5);transform-origin:top left;position:relative">
             <div class="desk-content">
               <div class="desk-group">
                 <div class="desk-texts">
@@ -407,7 +408,7 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
           <div style="color:#555;font-size:12px">oder Button rechts verwenden</div>
         </div>
       </div>
-      <div class="ruler"><span>0</span><span>576</span><span>960 (Mitte)</span><span>1536</span><span>1920</span></div>
+      <div class="ruler"><span>0</span><span>960</span><span>1920 (Mitte)</span><span>2880</span><span>3840</span></div>
       <div class="canvas-hint">Ziehen: Bild verschieben · Scrollrad: Zoom · Crops immer mittig (c_fill)</div>
     </div>
 
@@ -722,6 +723,13 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
   <div class="controls">
 
     <div class="card">
+      <h2>Artwork Requirements</h2>
+      <p class="hint"><b style="color:#333">01 · Image specs</b><br>UBA-PSD-Vorlage nutzen. Export als ein JPG, 3840 × 2160, 300 ppi, sRGB, 8 Bit/Kanal. 3–12 MB ideal (min. 3 MB, max. 20 MB).</p>
+      <p class="hint"><b style="color:#333">02 · No text or logos</b><br>Keine Logos, Titelgrafiken, Credits oder Copyright-Hinweise im Bild – das ergänzt die Plattform automatisch.</p>
+      <p class="hint"><b style="color:#333">03 · Full frame</b><br>Motiv zentriert halten, Bildränder sauber ausarbeiten – jeder Bereich des Bilds kann sichtbar werden.</p>
+    </div>
+
+    <div class="card">
       <h2>Bild laden</h2>
       <input type="file" id="file-input" accept="image/*" style="display:none">
       <button class="primary" onclick="document.getElementById('file-input').click()">📂 Bild auswählen</button>
@@ -746,7 +754,7 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
         <div class="ctrl-row"><span>Vertikal</span><b id="sl-y-val">—</b></div>
         <input type="range" id="sl-y" min="-3000" max="0" value="0" disabled>
       </div>
-      <p class="hint">Bild kann nicht kleiner als 1920 × 1280 skaliert oder aus dem Canvas-Bereich geschoben werden.</p>
+      <p class="hint">Bild kann nicht kleiner als 3840 × 2160 skaliert oder aus dem Canvas-Bereich geschoben werden.</p>
     </div>
 
     <div class="card">
@@ -774,16 +782,23 @@ table.zinfo td:first-child { width:96px; font-weight:600; }
       <h2>Exportieren</h2>
       <button class="exp-btn" id="exp-d" disabled onclick="exportHero()">
         <span class="exp-dot" style="background:#888"></span>
-        <span>Hero 3:2 · <b id="exp-size">1920 × 1280</b></span>
+        <span>UBA 16:9 · <b id="exp-size">3840 × 2160</b></span>
       </button>
-      <p class="hint">Exportiert als JPG (max. 10 MB) in der größtmöglichen Auflösung des Originalbilds (mind. 1920 × 1280 px). Dateiname: TITEL_ServusTVON.jpg</p>
+      <p class="hint">Exportiert als JPG, 300 ppi, sRGB, 8 Bit/Kanal, in der größtmöglichen Auflösung des Originalbilds (mind. 3840 × 2160 px). Zieldateigröße 3–12 MB ideal (max. 20 MB). Enthält nur das Bild – kein Text, keine Logos. Dateiname: TITEL_ServusTVON.jpg</p>
     </div>
 
   </div>
 </div>
 
 <script>
-const CW=1920, CH=1280, S=.5;
+const CW=3840, CH=2160, S=.25;
+
+// UBA-Sicherheitszonen (aus der offiziellen 3840×2160 PSD-Vorlage, Pixel-exakt)
+const CROP_TOP    = {x:0,    y:0,    w:3840, h:270};  // immer kappungsgefährdet
+const CROP_BOTTOM = {x:0,    y:1890, w:3840, h:270};  // immer kappungsgefährdet
+const SAFE_V       = {x:1400, y:270,  w:1040, h:1330}; // Art Safe Area, vertikaler Arm
+const SAFE_H       = {x:1110, y:561,  w:1622, h:749};  // Art Safe Area, horizontaler Arm
+const UI_AREA      = {x:1113, y:1600, w:1613, h:290};  // von der Plattform reserviert (Buttons/Text)
 
 // ox = horizontaler Ausschnitt-Versatz als Anteil der Viewport-Breite
 // (positiv = Bild wandert in der Vorschau nach rechts, passend zur realen Ausspielung)
@@ -803,44 +818,67 @@ const canvas=document.getElementById('main-canvas');
 const ctx=canvas.getContext('2d');
 const outer=document.getElementById('canvas-outer');
 
-// Fokuszone: Schnittmenge aller Device-Ausschnitte (inkl. ox-Versatz),
-// links begrenzt durch den Text-/Gradient-Bereich → liegt dadurch leicht rechts der Mitte
-function focusZone(){
-  let x0=0.45*CW, x1=CW, y0=0, y1=CH;
-  DEVS.forEach(d=>{
-    const fs=Math.max(d.w/CW,d.h/CH);
-    const ww=d.w/fs, wh=d.h/fs;
-    const cropX=(CW-ww)/2-(d.ox||0)*ww, cropY=(CH-wh)/2;
-    x0=Math.max(x0,cropX); x1=Math.min(x1,cropX+ww);
-    y0=Math.max(y0,cropY); y1=Math.min(y1,cropY+wh);
-  });
-  return [x0,y0,x1,y1];
-}
-
 function renderCanvas() {
   ctx.clearRect(0,0,CW*S,CH*S);
   ctx.fillStyle='#1a1a1a'; ctx.fillRect(0,0,CW*S,CH*S);
   if(img) ctx.drawImage(img,posX*S,posY*S,img.naturalWidth*zoom*S,img.naturalHeight*zoom*S);
   const sf=document.getElementById('show-focus');
   if(sf&&sf.checked){
-    const [x0,y0,x1,y1]=focusZone();
     ctx.save();
-    ctx.fillStyle='rgba(0,210,110,.14)';
-    ctx.fillRect(x0*S,y0*S,(x1-x0)*S,(y1-y0)*S);
-    ctx.strokeStyle='rgba(0,225,125,.95)';
-    ctx.lineWidth=2; ctx.setLineDash([8,6]);
-    ctx.strokeRect(x0*S,y0*S,(x1-x0)*S,(y1-y0)*S);
-    ctx.setLineDash([]);
-    // Fadenkreuz in der Zonenmitte
-    const cx=(x0+x1)/2*S, cy=(y0+y1)/2*S;
-    ctx.beginPath();
-    ctx.moveTo(cx-10,cy); ctx.lineTo(cx+10,cy);
-    ctx.moveTo(cx,cy-10); ctx.lineTo(cx,cy+10);
-    ctx.stroke();
-    // Beschriftung
-    ctx.fillStyle='rgba(0,225,125,.95)';
-    ctx.font='600 12px system-ui,sans-serif';
-    ctx.fillText('Fokuszone', x0*S+8, y0*S+18);
+    const r=z=>({x:z.x*S,y:z.y*S,w:z.w*S,h:z.h*S});
+
+    // Crop-Zone: oben/unten immer kappungsgefährdet
+    ctx.fillStyle='rgba(255,60,60,.16)';
+    ctx.strokeStyle='rgba(255,60,60,.85)';
+    ctx.lineWidth=1.5;
+    [CROP_TOP,CROP_BOTTOM].forEach(z=>{
+      const b=r(z);
+      ctx.fillRect(b.x,b.y,b.w,b.h);
+      ctx.strokeRect(b.x,b.y,b.w,b.h);
+    });
+
+    // UI-Bereich: von der Plattform reserviert (Buttons/Text)
+    {
+      const b=r(UI_AREA);
+      ctx.fillStyle='rgba(255,150,0,.16)';
+      ctx.strokeStyle='rgba(255,150,0,.85)';
+      ctx.fillRect(b.x,b.y,b.w,b.h);
+      ctx.strokeRect(b.x,b.y,b.w,b.h);
+    }
+
+    // Art Safe Area: Kreuzform aus vertikalem + horizontalem Arm
+    {
+      const v=r(SAFE_V), h=r(SAFE_H);
+      ctx.beginPath();
+      ctx.moveTo(v.x,       v.y);
+      ctx.lineTo(v.x+v.w,   v.y);
+      ctx.lineTo(v.x+v.w,   h.y);
+      ctx.lineTo(h.x+h.w,   h.y);
+      ctx.lineTo(h.x+h.w,   h.y+h.h);
+      ctx.lineTo(v.x+v.w,   h.y+h.h);
+      ctx.lineTo(v.x+v.w,   v.y+v.h);
+      ctx.lineTo(v.x,       v.y+v.h);
+      ctx.lineTo(v.x,       h.y+h.h);
+      ctx.lineTo(h.x,       h.y+h.h);
+      ctx.lineTo(h.x,       h.y);
+      ctx.lineTo(v.x,       h.y);
+      ctx.closePath();
+      ctx.fillStyle='rgba(0,210,110,.18)';
+      ctx.strokeStyle='rgba(0,225,125,.95)';
+      ctx.lineWidth=2; ctx.setLineDash([8,6]);
+      ctx.fill(); ctx.stroke();
+      ctx.setLineDash([]);
+      // Fadenkreuz in der Zonenmitte
+      const cx=h.x+h.w/2, cy=v.y+v.h/2;
+      ctx.beginPath();
+      ctx.moveTo(cx-10,cy); ctx.lineTo(cx+10,cy);
+      ctx.moveTo(cx,cy-10); ctx.lineTo(cx,cy+10);
+      ctx.stroke();
+      // Beschriftung
+      ctx.fillStyle='rgba(0,225,125,.95)';
+      ctx.font='600 12px system-ui,sans-serif';
+      ctx.fillText('Art Safe Area', v.x+8, v.y+18);
+    }
     ctx.restore();
   }
 }
@@ -1018,20 +1056,42 @@ document.getElementById('sl-y').addEventListener('input',function(){
 });
 
 function exportSize(){
-  // Sichtbarer 3:2-Ausschnitt in Original-Bildpixeln, mind. 1920 × 1280
+  // Sichtbarer 16:9-Ausschnitt (UBA) in Original-Bildpixeln, mind. 3840 × 2160
   const ow=Math.max(CW, Math.round(CW/zoom));
   return [ow, Math.round(ow*CH/CW)];
+}
+
+// Schreibt die 300-ppi-Dichte in den JFIF-Header eines canvas.toDataURL('image/jpeg')-Strings.
+// Betrifft nur die eingebetteten Metadaten, nicht die Pixelauflösung.
+function setJpegDpi(dataUrl, dpi){
+  try{
+    const comma=dataUrl.indexOf(',');
+    const meta=dataUrl.slice(0,comma), b64=dataUrl.slice(comma+1);
+    const bin=atob(b64);
+    const bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    // JFIF-APP0-Segment muss direkt auf SOI folgen: FFD8 FFE0 .. "JFIF\0"
+    if(bytes[2]===0xFF && bytes[3]===0xE0 &&
+       bytes[6]===0x4A && bytes[7]===0x46 && bytes[8]===0x49 && bytes[9]===0x46 && bytes[10]===0x00){
+      bytes[13]=1; // Einheit: Pixel pro Zoll
+      bytes[14]=(dpi>>8)&0xFF; bytes[15]=dpi&0xFF;
+      bytes[16]=(dpi>>8)&0xFF; bytes[17]=dpi&0xFF;
+    }
+    let out='';
+    for(let i=0;i<bytes.length;i++) out+=String.fromCharCode(bytes[i]);
+    return meta+','+btoa(out);
+  }catch(_){ return dataUrl; }
 }
 
 function exportHero(){
   if(!img) return;
   const sx=-posX/zoom, sy=-posY/zoom, sw=CW/zoom, sh=CH/zoom;
-  const MAX_BYTES=10*1024*1024; // 10 MB
+  const MAX_BYTES=20*1024*1024; // 20 MB (Spec: 3–12 MB ideal, 20 MB max)
   const PREFIX='data:image/jpeg;base64,'.length;
   let [ow,oh]=exportSize();
   let dataUrl=null;
 
-  // Qualität schrittweise senken; reicht das nicht, Auflösung reduzieren (nie unter 1920 × 1280)
+  // Qualität schrittweise senken; reicht das nicht, Auflösung reduzieren (nie unter 3840 × 2160)
   outer:
   while(true){
     const out=document.createElement('canvas'); out.width=ow; out.height=oh;
@@ -1048,6 +1108,8 @@ function exportHero(){
     ow=Math.max(CW, Math.round(ow*0.85));
     oh=Math.round(ow*CH/CW);
   }
+
+  dataUrl=setJpegDpi(dataUrl, 300);
 
   const title=document.getElementById('f-title').value
     .trim().replace(/[\\/:*?"<>|]/g,'').replace(/\s+/g,'_')||'Hero';
