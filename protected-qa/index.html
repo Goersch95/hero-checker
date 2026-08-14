@@ -187,47 +187,58 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
 .req-row .txt b { display:block; font-size:12.5px; margin-bottom:2px; color:var(--lt-ink); }
 .req-row .txt span { font-size:11.5px; color:var(--lt-muted); line-height:1.45; }
 
-/* Export card: prominent, tinted, with a live size gauge */
-.export-card {
-  background:linear-gradient(180deg,rgba(219,10,64,.07),rgba(219,10,64,.03));
-  border:1.5px solid rgba(219,10,64,.35);
+/* Export: große, prominente Leiste direkt unter dem Cropping-Ausschnitt */
+.export-bar {
+  display:flex; align-items:center; gap:28px; margin-top:14px;
+  background:linear-gradient(135deg,rgba(219,10,64,.09),rgba(219,10,64,.03));
+  border:1.5px solid rgba(219,10,64,.35); border-radius:16px;
+  padding:20px 26px; box-shadow:0 16px 34px -22px rgba(219,10,64,.45);
 }
-.export-card h2 { color:var(--lt-accent); }
-.gauge { height:7px; border-radius:4px; background:var(--lt-sunk); overflow:hidden; }
+.export-bar-info { flex:1 1 auto; min-width:0; }
+.export-bar-info .hint { margin-top:10px; max-width:60ch; }
+.gauge { height:8px; border-radius:5px; background:var(--lt-sunk); overflow:hidden; }
 .gauge i { display:block; height:100%; background:var(--lt-safe); width:0%; transition:width .2s,background .2s; }
-.gauge-row { display:flex; justify-content:space-between; font-size:10.5px; color:var(--lt-muted); }
-.gauge-row .mono { font-family:var(--lt-mono); color:var(--lt-ink-dim); }
+.gauge-row { display:flex; justify-content:space-between; font-size:12.5px; color:var(--lt-ink-dim); font-weight:600; margin-bottom:7px; }
+.gauge-row .mono { font-family:var(--lt-mono); color:var(--lt-accent); font-weight:700; }
 
 .exp-btn {
-  background:var(--lt-accent); color:#fff; border:none; border-radius:10px; padding:14px 16px;
-  font-size:14.5px; font-weight:700; cursor:pointer; width:100%; text-align:left;
-  display:flex; flex-direction:column; align-items:flex-start; gap:7px;
-  transition:filter .15s,transform .1s; box-shadow:0 10px 22px -12px rgba(219,10,64,.55);
+  background:var(--lt-accent); color:#fff; border:none; border-radius:12px; padding:18px 24px;
+  font-size:16px; font-weight:800; cursor:pointer; text-align:left; flex-shrink:0; min-width:300px;
+  display:flex; flex-direction:column; align-items:flex-start; gap:8px;
+  transition:filter .15s,transform .1s; box-shadow:0 12px 26px -12px rgba(219,10,64,.6);
 }
 .exp-btn:hover:not(:disabled) { filter:brightness(.93); }
 .exp-btn:active:not(:disabled) { transform:scale(.99); }
 .exp-btn:disabled { opacity:.4; cursor:not-allowed; box-shadow:none; }
 .exp-size-tag {
-  font:600 10.5px/1 var(--lt-mono); letter-spacing:.02em; background:rgba(255,255,255,.2);
-  padding:5px 8px; border-radius:20px; white-space:nowrap; flex-shrink:0;
+  font:600 11px/1 var(--lt-mono); letter-spacing:.02em; background:rgba(255,255,255,.2);
+  padding:6px 9px; border-radius:20px; white-space:nowrap; flex-shrink:0;
 }
 .exp-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
 
-/* Titel- & Text-Eingabe: prominenter Button statt Inline-Felder */
+/* Titel- & Text-Eingabe: als klar erkennbares, klickbares Eingabefeld gestaltet */
+.text-entry-card { border-color:rgba(219,10,64,.3); }
+.text-entry-hint { font-size:11px; color:var(--lt-muted); margin-top:-4px; margin-bottom:2px; }
 .text-entry-btn {
-  width:100%; background:var(--lt-surface); border:1px solid var(--lt-line); border-radius:14px;
-  padding:16px 18px; cursor:pointer; text-align:left; display:flex; flex-direction:column; gap:4px;
-  box-shadow:0 8px 18px -16px rgba(27,24,17,.3); transition:border-color .15s,background .15s;
+  width:100%; background:var(--lt-sunk); border:1.5px dashed rgba(219,10,64,.45); border-radius:12px;
+  padding:13px 14px; cursor:text; text-align:left; display:flex; align-items:center; gap:12px;
+  transition:border-color .15s,border-style .15s,background .15s,box-shadow .15s;
 }
-.text-entry-btn:hover { border-color:var(--lt-accent); background:var(--lt-raised); }
-.text-entry-label {
-  font:700 11px/1 var(--lt-mono); letter-spacing:.06em; text-transform:uppercase; color:var(--lt-accent);
+.text-entry-btn:hover, .text-entry-btn:focus-visible {
+  border-style:solid; border-color:var(--lt-accent); background:var(--lt-surface);
+  box-shadow:0 0 0 4px rgba(219,10,64,.1);
 }
+.text-entry-icon {
+  width:36px; height:36px; border-radius:50%; background:var(--lt-accent); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;
+}
+.text-entry-body { min-width:0; display:flex; flex-direction:column; gap:3px; flex:1; }
 .text-entry-preview {
-  font-size:17px; font-weight:800; color:var(--lt-ink); line-height:1.3;
+  font-size:15px; font-weight:800; color:var(--lt-ink); line-height:1.25;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.text-entry-cta { font-size:11.5px; color:var(--lt-muted); }
+.text-entry-cta { font-size:11px; color:var(--lt-muted); }
+.text-entry-chevron { color:var(--lt-accent); font-size:16px; flex-shrink:0; }
 
 /* Titel- & Text-Eingabe: Modal */
 #text-modal {
@@ -472,6 +483,8 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
   .controls { width:100%; max-width:none; min-width:0; }
   header { padding:12px 16px; }
   .device--wide { zoom:0.75; } /* Wide Hero (800px fest) an schmalere Fenster anpassen */
+  .export-bar { flex-direction:column; align-items:stretch; padding:18px; gap:16px; }
+  .exp-btn { min-width:0; width:100%; }
 }
 @media (max-width: 480px) {
   .workspace { padding:10px; gap:16px; }
@@ -586,6 +599,19 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
         <span><i style="background:#158A55"></i>Art Safe Area</span>
         <span><i style="background:#C56A00"></i>UI-Bereich (Plattform)</span>
       </div>
+    </div>
+
+    <!-- Export: groß, direkt unter dem Cropping-Ausschnitt -->
+    <div class="export-bar">
+      <div class="export-bar-info">
+        <div class="gauge-row"><span id="exp-gauge-tag">Geschätzte Dateigröße</span><span class="mono" id="exp-gauge-label">–</span></div>
+        <div class="gauge"><i id="exp-gauge-fill"></i></div>
+        <p class="hint">JPG, 300 ppi, sRGB, 8 Bit/Kanal, größtmögliche Auflösung des Originalbilds (mind. 3840 × 2160 px). Zieldateigröße 3–12 MB ideal (max. 20 MB). Enthält nur das Bild – kein Text, keine Logos. Dateiname: TITEL_ServusTVON.jpg</p>
+      </div>
+      <button class="exp-btn" id="exp-d" disabled onclick="exportHero()">
+        <span>Diesen Bildausschnitt exportieren</span>
+        <span class="exp-size-tag" id="exp-size">3840 × 2160</span>
+      </button>
     </div>
 
     <!-- Kleine Devices: Web Mobile + iPhone + Tablet -->
@@ -916,17 +942,6 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
       <p class="hint">oder direkt auf die Vorschau ziehen</p>
     </div>
 
-    <div class="card export-card">
-      <h2>Export</h2>
-      <div class="gauge-row"><span id="exp-gauge-tag">Geschätzte Dateigröße</span><span class="mono" id="exp-gauge-label">–</span></div>
-      <div class="gauge"><i id="exp-gauge-fill"></i></div>
-      <button class="exp-btn" id="exp-d" disabled onclick="exportHero()">
-        <span>Diesen Bildausschnitt exportieren</span>
-        <span class="exp-size-tag" id="exp-size">3840 × 2160</span>
-      </button>
-      <p class="hint">JPG, 300 ppi, sRGB, 8 Bit/Kanal, in der größtmöglichen Auflösung des Originalbilds (mind. 3840 × 2160 px). Zieldateigröße 3–12 MB ideal (max. 20 MB). Enthält nur das Bild – kein Text, keine Logos. Dateiname: TITEL_ServusTVON.jpg</p>
-    </div>
-
     <div class="card">
       <h2>Bildposition</h2>
       <div class="ctrl">
@@ -947,11 +962,15 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
       <p class="hint">Bild kann nicht kleiner als 3840 × 2160 skaliert oder aus dem Canvas-Bereich geschoben werden.</p>
     </div>
 
-    <div class="card" style="padding:0">
+    <div class="card text-entry-card">
+      <h2>Titel &amp; Text</h2>
       <button class="text-entry-btn" onclick="openTextModal()">
-        <span class="text-entry-label">Titel- &amp; Text-Eingabe</span>
-        <span class="text-entry-preview" id="text-entry-preview">Beispiel Titel</span>
-        <span class="text-entry-cta">Bearbeiten ↗</span>
+        <span class="text-entry-icon">✎</span>
+        <span class="text-entry-body">
+          <span class="text-entry-preview" id="text-entry-preview">Beispiel Titel</span>
+          <span class="text-entry-cta">Titel, Badge, Meta &amp; Beschreibung bearbeiten</span>
+        </span>
+        <span class="text-entry-chevron">›</span>
       </button>
     </div>
 
