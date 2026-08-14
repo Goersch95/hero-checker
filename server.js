@@ -2,6 +2,7 @@ const path = require('path');
 const crypto = require('crypto');
 const express = require('express');
 const cookieParser = require('cookie-parser');
+const { checkBudget, recordGeneration } = require('./lib/expand-budget');
 
 const APP_PASSWORD = process.env.APP_PASSWORD;
 const SESSION_SECRET = process.env.SESSION_SECRET;
@@ -51,6 +52,29 @@ app.post('/login', (req, res) => {
 app.get('/logout', (req, res) => {
   res.clearCookie('auth');
   res.redirect('/login');
+});
+
+// Generativ-Erweitern-Kontingent (Kill Switch): Phase 1 nutzt nur die kostenlose
+// clientseitige Mock-Generierung, ruft aber schon jetzt diese Gates auf, damit in
+// Phase 2 (echter Gemini-Call) keine Client-Änderung mehr nötig ist.
+app.get('/qa/api/expand-budget', requireAuth, (req, res) => {
+  res.json(checkBudget());
+});
+
+app.post('/qa/api/expand', requireAuth, (req, res) => {
+  if (!process.env.GEMINI_API_KEY) {
+    // Noch kein Key hinterlegt: kostenlose Mock-Generierung, verbraucht kein Budget
+    // und wird daher NICHT gegen das Kontingent geprüft.
+    return res.json({ mode: 'mock', ...checkBudget() });
+  }
+  // Ab hier entstehen echte Kosten -> Kill Switch greift.
+  const budget = checkBudget();
+  if (!budget.allowed) {
+    return res.status(402).json({ error: 'budget_exceeded', ...budget });
+  }
+  // TODO Phase 2: echten Gemini-Outpainting-Call hier einbauen. Erst bei
+  // tatsächlichem Erfolg recordGeneration() aufrufen (nicht vorher, nicht bei Fehlern).
+  return res.status(501).json({ error: 'not_implemented' });
 });
 
 app.use(requireAuth, express.static(path.join(__dirname, 'protected')));

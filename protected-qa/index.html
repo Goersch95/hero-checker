@@ -262,6 +262,8 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
 .expand-toggle input:disabled { opacity:.5; }
 .expand-pct-row { display:flex; justify-content:space-between; font-size:11.5px; color:var(--lt-ink-dim); padding:2px 0; }
 .expand-pct-row[hidden] { display:none; }
+.expand-budget-line { font-family:var(--lt-mono); background:rgba(124,77,255,.08); border-radius:8px; padding:6px 8px; }
+.expand-budget-line.is-exhausted { color:#c0392b; background:rgba(220,60,60,.12); }
 .expand-pct-row b { color:#6D4AFF; font-family:var(--lt-mono); }
 .expand-generate-btn { background:#6D4AFF; box-shadow:0 10px 22px -12px rgba(109,74,255,.55); justify-content:center; }
 .expand-generate-btn:hover:not(:disabled) { filter:brightness(.93); }
@@ -1050,6 +1052,7 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
         <span>Erweitern-Modus – in die andere Richtung zoomen</span>
       </label>
       <p class="hint" id="expand-hint-text">Zeigt beim Rauszoomen die Bereiche außerhalb des Fotos, die generativ ergänzt werden. Aktuell noch eine Platzhalter-Füllung (weicher Kantenverlauf) statt echter KI.</p>
+      <p class="hint expand-budget-line" id="expand-budget-line" hidden></p>
       <div class="expand-pct-row" id="expand-pct-row" hidden>
         <span>Wird ergänzt</span>
         <b id="expand-pct-val">0 %</b>
@@ -1343,11 +1346,51 @@ function buildMockExpandCanvas(){
   return out.toDataURL('image/png');
 }
 
-function generateExpand(){
+function fmtEuro(n){ return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
+
+// Kill Switch: zeigt das monatliche Budget für ECHTE KI-Generierungen an.
+// Die Platzhalter-Generierung (Phase 1) ist clientseitig und kostenlos und
+// verbraucht dieses Budget nicht - der Server bestätigt das pro Aufruf.
+async function refreshExpandBudget(){
+  const line=document.getElementById('expand-budget-line');
+  if(!line) return;
+  try{
+    const res=await fetch('/qa/api/expand-budget');
+    if(!res.ok) return;
+    const b=await res.json();
+    line.hidden=false;
+    line.classList.toggle('is-exhausted', !b.allowed);
+    if(b.allowed){
+      line.textContent='Kill Switch: max. '+fmtEuro(b.budgetUsd)+' / Monat für echte KI-Generierungen (≈'+b.generationsLeft+' Bilder à '+fmtEuro(b.costPerImageUsd)+'). Aktuell kostenlos, solange nur der Platzhalter läuft.';
+    } else {
+      line.textContent='Monatsbudget für echte KI-Generierungen erreicht ('+fmtEuro(b.spentUsd)+' / '+fmtEuro(b.budgetUsd)+'). Die kostenlose Platzhalter-Generierung funktioniert weiterhin.';
+    }
+    return b;
+  } catch(_) {}
+}
+
+async function generateExpand(){
   if(!img) return;
   const btn=document.getElementById('expand-generate');
   btn.disabled=true; btn.classList.add('is-loading');
   btn.querySelector('span').textContent='Generiere …';
+
+  let gate;
+  try {
+    const res=await fetch('/qa/api/expand',{method:'POST'});
+    gate=await res.json().catch(()=>({}));
+    if(!res.ok){
+      btn.classList.remove('is-loading'); btn.disabled=false;
+      btn.querySelector('span').textContent='Jetzt generieren';
+      await refreshExpandBudget();
+      return;
+    }
+  } catch(_) {
+    btn.classList.remove('is-loading'); btn.disabled=false;
+    btn.querySelector('span').textContent='Jetzt generieren';
+    return;
+  }
+
   expandBeforeState={img, posX, posY, zoom};
 
   setTimeout(()=>{
@@ -1359,6 +1402,7 @@ function generateExpand(){
       btn.classList.remove('is-loading');
       btn.hidden=true;
       document.getElementById('expand-result-actions').hidden=false;
+      if(gate.mode!=='mock') refreshExpandBudget();
     };
     newImg.src=dataUrl;
   }, 900);
@@ -1780,6 +1824,7 @@ resizeStage();
 updateText();
 const _desc=document.getElementById('f-desc');
 document.getElementById('desc-count').textContent=_desc.value.length+' / 500';
+refreshExpandBudget();
 </script>
 </body>
 </html>
