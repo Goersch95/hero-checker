@@ -61,12 +61,13 @@ app.get('/qa/api/expand-budget', requireAuth, (req, res) => {
 
 const GEMINI_API_BASE = process.env.GEMINI_API_BASE_URL || 'https://generativelanguage.googleapis.com';
 const GEMINI_MODEL = process.env.GEMINI_EXPAND_MODEL || 'gemini-2.5-flash-image';
-const EXPAND_PROMPT = 'This image has a sharp, in-focus photograph in the center surrounded by a blurred, '
-  + 'lower-detail version of a similar scene. Replace ONLY the blurred surrounding area with a '
-  + 'photorealistic, seamless continuation of the sharp photo in the center - same subject, lighting, '
-  + 'color grading, lens perspective and level of detail. Keep the sharp central area completely '
-  + 'unchanged. Do not add any text, logos, watermarks, or people/objects that are not already implied '
-  + 'by the scene. Output at the same resolution and aspect ratio as the input image.';
+const EXPAND_PROMPT = 'Extend this image beyond its original borders using outpainting. The sharp, '
+  + 'in-focus area in the middle is the original photo - keep its subject and composition completely '
+  + 'intact and unchanged. The blurred area around it is a rough placeholder showing roughly where the '
+  + 'scene continues; replace ONLY that blurred area with new, photorealistic, high-resolution, '
+  + 'seamlessly integrated content that matches the style, colors, lighting and perspective of the '
+  + 'original photo exactly, as if the camera had simply captured a wider shot. Do not add any text, '
+  + 'logos, watermarks, or new people. 16:9 landscape output.';
 
 // Verhindert, dass zwei nahezu gleichzeitige Anfragen beide den Budget-Check bestehen,
 // bevor die erste ihren Verbrauch verbucht hat (einfache Serialisierung reicht für dieses
@@ -114,7 +115,11 @@ async function handleExpand(req, res) {
         headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: EXPAND_PROMPT }, { inlineData: { mimeType, data: base64Data } }] }],
-          generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
+          // Ohne explizites aspectRatio fällt das Modell laut Doku auf 1:1 zurück, obwohl
+          // unser Canvas fix 3840x2160 (16:9) ist - dieser Widerspruch zur "an dieser Stelle
+          // bearbeiten, Rest beibehalten"-Anweisung im Prompt ist ein plausibler Auslöser
+          // für das generische finishReason=IMAGE_OTHER.
+          generationConfig: { responseModalities: ['TEXT', 'IMAGE'], imageConfig: { aspectRatio: '16:9' } },
         }),
       }
     );
