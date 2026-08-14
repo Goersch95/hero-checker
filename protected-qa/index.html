@@ -1375,26 +1375,35 @@ async function generateExpand(){
   btn.disabled=true; btn.classList.add('is-loading');
   btn.querySelector('span').textContent='Generiere …';
 
-  let gate;
+  const seedDataUrl=buildMockExpandCanvas();
+  expandBeforeState={img, posX, posY, zoom};
+
+  let resultDataUrl, isMock=true;
   try {
-    const res=await fetch('/qa/api/expand',{method:'POST'});
-    gate=await res.json().catch(()=>({}));
+    const res=await fetch('/qa/api/expand',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({image:seedDataUrl}),
+    });
+    const gate=await res.json().catch(()=>({}));
     if(!res.ok){
       btn.classList.remove('is-loading'); btn.disabled=false;
       btn.querySelector('span').textContent='Jetzt generieren';
       await refreshExpandBudget();
       return;
     }
+    isMock = gate.mode!=='real';
+    resultDataUrl = isMock ? seedDataUrl : gate.image;
+    if(!isMock) refreshExpandBudget();
   } catch(_) {
     btn.classList.remove('is-loading'); btn.disabled=false;
     btn.querySelector('span').textContent='Jetzt generieren';
     return;
   }
 
-  expandBeforeState={img, posX, posY, zoom};
-
+  // Künstliche Verzögerung nur im Mock-Fall für ein glaubwürdiges "Generiere ..."-Gefühl;
+  // beim echten Call bringt der Netzwerk-Request selbst schon genug Wartezeit mit.
   setTimeout(()=>{
-    const dataUrl=buildMockExpandCanvas();
     const newImg=new Image();
     newImg.onload=()=>{
       img=newImg; posX=0; posY=0; zoom=1;
@@ -1402,10 +1411,9 @@ async function generateExpand(){
       btn.classList.remove('is-loading');
       btn.hidden=true;
       document.getElementById('expand-result-actions').hidden=false;
-      if(gate.mode!=='mock') refreshExpandBudget();
     };
-    newImg.src=dataUrl;
-  }, 900);
+    newImg.src=resultDataUrl;
+  }, isMock ? 900 : 0);
 }
 
 function acceptExpand(){

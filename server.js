@@ -54,28 +54,98 @@ app.get('/logout', (req, res) => {
   res.redirect('/login');
 });
 
-// Generativ-Erweitern-Kontingent (Kill Switch): Phase 1 nutzt nur die kostenlose
-// clientseitige Mock-Generierung, ruft aber schon jetzt diese Gates auf, damit in
-// Phase 2 (echter Gemini-Call) keine Client-Änderung mehr nötig ist.
+// Generativ-Erweitern-Kontingent (Kill Switch).
 app.get('/qa/api/expand-budget', requireAuth, (req, res) => {
   res.json(checkBudget());
 });
 
-app.post('/qa/api/expand', requireAuth, (req, res) => {
+const GEMINI_API_BASE = process.env.GEMINI_API_BASE_URL || 'https://generativelanguage.googleapis.com';
+const GEMINI_MODEL = process.env.GEMINI_EXPAND_MODEL || 'gemini-2.5-flash-image';
+const EXPAND_PROMPT = 'This image has a sharp, in-focus photograph in the center surrounded by a blurred, '
+  + 'lower-detail version of a similar scene. Replace ONLY the blurred surrounding area with a '
+  + 'photorealistic, seamless continuation of the sharp photo in the center - same subject, lighting, '
+  + 'color grading, lens perspective and level of detail. Keep the sharp central area completely '
+  + 'unchanged. Do not add any text, logos, watermarks, or people/objects that are not already implied '
+  + 'by the scene. Output at the same resolution and aspect ratio as the input image.';
+
+// Verhindert, dass zwei nahezu gleichzeitige Anfragen beide den Budget-Check bestehen,
+// bevor die erste ihren Verbrauch verbucht hat (einfache Serialisierung reicht für dieses
+// kleine, intern genutzte Tool - keine Mehrprozess-Deployments).
+let expandQueue = Promise.resolve();
+function serialize(fn) {
+  const run = expandQueue.then(fn, fn);
+  expandQueue = run.catch(() => {});
+  return run;
+}
+
+app.post('/qa/api/expand', requireAuth, express.json({ limit: '20mb' }), (req, res) => {
+  serialize(() => handleExpand(req, res)).catch(err => {
+    console.error('Unerwarteter Fehler bei /qa/api/expand:', err);
+    if (!res.headersSent) res.status(500).json({ error: 'internal_error' });
+  });
+});
+
+async function handleExpand(req, res) {
   if (!process.env.GEMINI_API_KEY) {
     // Noch kein Key hinterlegt: kostenlose Mock-Generierung, verbraucht kein Budget
     // und wird daher NICHT gegen das Kontingent geprüft.
     return res.json({ mode: 'mock', ...checkBudget() });
   }
-  // Ab hier entstehen echte Kosten -> Kill Switch greift.
+
+  const image = req.body && req.body.image;
+  const match = typeof image === 'string' && image.match(/^data:(image\/\w+);base64,(.+)$/);
+  if (!match) {
+    return res.status(400).json({ error: 'bad_request', message: 'Erwarte ein Bild als data-URL im Feld "image".' });
+  }
+  const [, mimeType, base64Data] = match;
+
+  // Ab hier würde ein echter Call Kosten verursachen -> Kill Switch greift VOR dem Call.
   const budget = checkBudget();
   if (!budget.allowed) {
     return res.status(402).json({ error: 'budget_exceeded', ...budget });
   }
-  // TODO Phase 2: echten Gemini-Outpainting-Call hier einbauen. Erst bei
-  // tatsächlichem Erfolg recordGeneration() aufrufen (nicht vorher, nicht bei Fehlern).
-  return res.status(501).json({ error: 'not_implemented' });
-});
+
+  let geminiRes;
+  try {
+    geminiRes = await fetch(
+      `${GEMINI_API_BASE}/v1beta/models/${GEMINI_MODEL}:generateContent`,
+      {
+        method: 'POST',
+        headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: EXPAND_PROMPT }, { inlineData: { mimeType, data: base64Data } }] }],
+          generationConfig: { responseModalities: ['IMAGE'] },
+        }),
+      }
+    );
+  } catch (err) {
+    console.error('Gemini-Aufruf fehlgeschlagen (Netzwerk):', err);
+    return res.status(502).json({ error: 'provider_error', message: 'Verbindung zum KI-Anbieter fehlgeschlagen.' });
+  }
+
+  if (!geminiRes.ok) {
+    const errText = await geminiRes.text().catch(() => '');
+    console.error('Gemini-Aufruf fehlgeschlagen:', geminiRes.status, errText.slice(0, 500));
+    return res.status(502).json({ error: 'provider_error', message: 'KI-Anbieter hat die Anfrage abgelehnt.' });
+  }
+
+  const data = await geminiRes.json().catch(() => null);
+  const parts = data && data.candidates && data.candidates[0] && data.candidates[0].content
+    && data.candidates[0].content.parts || [];
+  const imgPart = parts.find(p => p.inlineData && p.inlineData.data);
+  if (!imgPart) {
+    console.error('Gemini-Antwort enthielt kein Bild:', JSON.stringify(data).slice(0, 500));
+    return res.status(502).json({ error: 'provider_error', message: 'Kein Bild in der Antwort erhalten.' });
+  }
+
+  // Erst JETZT, nach bestätigtem Erfolg, gegen das Budget verbuchen.
+  const budgetAfter = recordGeneration();
+  return res.json({
+    mode: 'real',
+    image: `data:${imgPart.inlineData.mimeType || 'image/png'};base64,${imgPart.inlineData.data}`,
+    ...budgetAfter,
+  });
+}
 
 app.use(requireAuth, express.static(path.join(__dirname, 'protected')));
 app.use('/qa', requireAuth, express.static(path.join(__dirname, 'protected-qa')));
