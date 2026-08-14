@@ -81,7 +81,7 @@ header .spec-chips span {
   align-items:center; justify-content:center; gap:10px; color:#5a5a5a; pointer-events:none;
 }
 #drop-hint .icon { font-size:40px; }
-.ruler { display:flex; justify-content:space-between; font-size:9px; color:var(--lt-muted); margin-top:4px; width:960px; font-family:var(--lt-mono); }
+.ruler { display:flex; justify-content:space-between; font-size:9px; color:var(--lt-muted); margin-top:4px; width:100%; font-family:var(--lt-mono); }
 .canvas-hint { font-size:11px; color:var(--lt-muted); margin-top:5px; }
 
 /* ── Device row ── */
@@ -412,6 +412,29 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
 .tv-cat:nth-child(4) { background:linear-gradient(135deg,#2e2c28 0%,#191815 100%); }
 .tv-cat:nth-child(5) { background:linear-gradient(135deg,#28313b 0%,#161b21 100%); }
 .tv-cat:nth-child(6) { background:linear-gradient(135deg,#31292c 0%,#1b1618 100%); }
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE: Desktop nutzt die volle Breite (Canvas +
+   Smart TV werden per JS an die verfügbare Breite
+   angepasst, siehe resizeStage()). Ab 900px stapelt die
+   Sidebar unter statt neben die Vorschau; ab 480px werden
+   die Kleingeräte-Kacheln zusätzlich verkleinert, damit
+   nichts horizontal überläuft.
+   ═══════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .workspace { flex-direction:column; padding:14px; gap:20px; }
+  .canvas-col { width:100%; }
+  .controls { width:100%; max-width:none; min-width:0; }
+  header { padding:12px 16px; }
+  .device--wide { zoom:0.75; } /* Wide Hero (800px fest) an schmalere Fenster anpassen */
+}
+@media (max-width: 480px) {
+  .workspace { padding:10px; gap:16px; }
+  header { padding:10px 14px; gap:10px; }
+  header .spec-chips span { font-size:9.5px; padding:5px 8px; }
+  .device-row .device { zoom:0.74; }
+  .device--wide { zoom:0.4; } /* Wide Hero (800px fest) muss stärker verkleinert werden */
+}
 </style>
 </head>
 <body>
@@ -449,7 +472,7 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
           linear-gradient(180deg,rgba(21,22,25,.4) 0,transparent 20%),
           radial-gradient(100% 100% at 80.71% 0,transparent 41.5%,#151619 100%)"></div>
         <div id="desk-nav" class="desk-layer">
-          <div style="width:1920px;height:1080px;transform:scale(.5);transform-origin:top left;position:relative">
+          <div id="desk-nav-inner" style="width:1920px;height:1080px;transform:scale(.5);transform-origin:top left;position:relative">
             <!-- Netzwerk-Leiste -->
             <div style="height:48px;background:#0c0c0e;display:flex;align-items:center;justify-content:center;gap:64px;border-bottom:1px solid rgba(255,255,255,.06)">
               <img src="https://res.cloudinary.com/hhhkasdw4/image/upload/v1773693837/streaming-platform/web/stv/servus-logo.svg" height="19" alt="Servus" style="opacity:.65">
@@ -481,7 +504,7 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
           </div>
         </div>
         <div id="desk-text" class="desk-layer">
-          <div class="stv" style="width:1920px;height:1080px;transform:scale(.5);transform-origin:top left;position:relative">
+          <div id="desk-text-inner" class="stv" style="width:1920px;height:1080px;transform:scale(.5);transform-origin:top left;position:relative">
             <div class="desk-content">
               <div class="desk-group">
                 <div class="desk-texts">
@@ -709,7 +732,7 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
             linear-gradient(90deg,rgba(15,18,22,.8) 0%,rgba(15,18,22,.3) 30%,transparent 58%),
             linear-gradient(0deg,#0f1216 0%,rgba(15,18,22,.96) 16%,rgba(15,18,22,.5) 34%,transparent 58%)"></div>
           <div style="position:absolute;inset:0;overflow:hidden">
-            <div class="stv" style="width:1920px;height:1080px;transform:scale(.5);transform-origin:top left;position:relative">
+            <div id="tv-inner" class="stv" style="width:1920px;height:1080px;transform:scale(.5);transform-origin:top left;position:relative">
               <!-- UI-Chrome (per Checkbox ausblendbar) -->
               <div id="tv-chrome" style="position:absolute;inset:0">
                 <div class="tv-home-pill">
@@ -762,7 +785,7 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
 
 
     <!-- Wide Hero 2000×825 -->
-    <div class="device" data-name="Wide Hero · 2000×825" onclick="openDeviceLightbox(this,event)">
+    <div class="device device--wide" data-name="Wide Hero · 2000×825" onclick="openDeviceLightbox(this,event)">
       <div class="device-label">
         <span class="dev-badge" style="background:#50d250"></span>
         Wide Hero <span style="color:#444;font-weight:400">2000 × 825</span>
@@ -837,9 +860,8 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
 
     <div class="card req">
       <h2 style="padding:13px 0 0 2px">Artwork Requirements</h2>
-      <div class="req-row"><span class="ico">1</span><div class="txt"><b>Image specs</b><span>3840×2160 · JPG · 300&nbsp;ppi · sRGB · 8&nbsp;Bit · 3–12&nbsp;MB ideal (max. 20&nbsp;MB)</span></div></div>
-      <div class="req-row"><span class="ico">2</span><div class="txt"><b>Kein Text/Logo</b><span>Keine Logos, Titelgrafiken, Credits oder Copyright-Hinweise – das ergänzt die Plattform</span></div></div>
-      <div class="req-row"><span class="ico">3</span><div class="txt"><b>Vollformat</b><span>Motiv zentriert halten, Bildränder sauber ausarbeiten</span></div></div>
+      <div class="req-row"><span class="ico">1</span><div class="txt"><b>Kein Text/Logo</b><span>Keine Logos, Titelgrafiken, Credits oder Copyright-Hinweise – das ergänzt die Plattform</span></div></div>
+      <div class="req-row"><span class="ico">2</span><div class="txt"><b>Vollformat</b><span>Motiv zentriert halten, Bildränder sauber ausarbeiten</span></div></div>
     </div>
 
     <div class="card">
@@ -913,7 +935,8 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
 </div>
 
 <script>
-const CW=3840, CH=2160, S=.25;
+const CW=3840, CH=2160;
+let S=.25; // Anzeige-Skalierung; wird von resizeStage() an die verfügbare Breite angepasst
 
 // UBA-Sicherheitszonen (aus der offiziellen 3840×2160 PSD-Vorlage, Pixel-exakt)
 const CROP_TOP    = {x:0,    y:0,    w:3840, h:270};  // immer kappungsgefährdet
@@ -1096,6 +1119,26 @@ outer.addEventListener('wheel',e=>{
   posX=mx-(mx-posX)*(zoom/prev); posY=my-(my-posY)*(zoom/prev);
   clampPos(); updateSliders(); render();
 },{passive:false});
+
+// Touch-Drag (ein Finger) fürs Repositionieren auf Mobilgeräten
+outer.addEventListener('touchstart',e=>{
+  if(!img || e.touches.length!==1) return;
+  const t=e.touches[0];
+  dragging=true; didDrag=false;
+  dragX0=t.clientX; dragY0=t.clientY; posX0=posX; posY0=posY;
+  outer.classList.add('dragging');
+},{passive:true});
+outer.addEventListener('touchmove',e=>{
+  if(!dragging || e.touches.length!==1) return;
+  e.preventDefault();
+  const t=e.touches[0];
+  const dx=t.clientX-dragX0, dy=t.clientY-dragY0;
+  if(Math.abs(dx)>3||Math.abs(dy)>3) didDrag=true;
+  posX=posX0+dx/S; posY=posY0+dy/S; clampPos(); updateSliders(); render();
+},{passive:false});
+outer.addEventListener('touchend',()=>{
+  dragging=false; outer.classList.remove('dragging');
+});
 
 document.getElementById('file-input').addEventListener('change',e=>loadFile(e.target.files[0]));
 // Datei-Drop auf der gesamten Seite akzeptieren
@@ -1296,7 +1339,60 @@ function onLightboxKeydown(e){
   if(e.key==='Escape') closeDeviceLightbox();
 }
 
-renderCanvas();
+/* ── Responsive Stage: Desktop-Canvas + Smart TV nutzen die verfügbare
+   Breite (voller Bildschirm auf großen Monitoren, volle Breite minus
+   Padding gestapelt auf Mobilgeräten). Die Overlay-Design-Ebenen (Nav,
+   Hero-Text, TV-Oberfläche) sind fest auf 1920px-Breite ausgelegt, daher
+   genügt ein gemeinsamer Skalierungsfaktor W/1920 für alle drei. ── */
+const deskNavInner=document.getElementById('desk-nav-inner');
+const deskTextInner=document.getElementById('desk-text-inner');
+const tvOuter=document.getElementById('tv-outer');
+const tvInner=document.getElementById('tv-inner');
+const tvDevEntry=DEVS.find(d=>d.id==='tv-bg');
+
+function computeStageWidth(){
+  const workspace=document.querySelector('.workspace');
+  const controls=document.querySelector('.controls');
+  const wsStyle=getComputedStyle(workspace);
+  const isRow=wsStyle.flexDirection.indexOf('row')===0;
+  const padX=parseFloat(wsStyle.paddingLeft)+parseFloat(wsStyle.paddingRight);
+  let avail=workspace.clientWidth-padX;
+  if(isRow){
+    const gap=parseFloat(wsStyle.columnGap||wsStyle.gap)||18;
+    avail-=(controls.getBoundingClientRect().width+gap);
+  }
+  avail-=6;
+  const minW=isRow?720:280, maxW=1900;
+  const w=Math.max(minW,Math.min(maxW,avail));
+  return Math.round(w);
+}
+
+function resizeStage(){
+  const w=computeStageWidth();
+  S=w/CW;
+  const h=Math.round(CH*S);
+
+  canvas.width=w; canvas.height=h;
+  outer.style.width=w+'px'; outer.style.height=h+'px';
+
+  const overlayScale=w/1920;
+  if(deskNavInner) deskNavInner.style.transform='scale('+overlayScale+')';
+  if(deskTextInner) deskTextInner.style.transform='scale('+overlayScale+')';
+  if(tvOuter){ tvOuter.style.width=w+'px'; tvOuter.style.height=h+'px'; }
+  if(tvInner) tvInner.style.transform='scale('+overlayScale+')';
+  if(tvDevEntry) tvDevEntry.s=overlayScale;
+
+  clampPos();
+  render();
+}
+
+let resizeTimer=null;
+window.addEventListener('resize',()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(resizeStage,120);
+});
+
+resizeStage();
 updateText();
 const _desc=document.getElementById('f-desc');
 document.getElementById('desc-count').textContent=_desc.value.length+' / 500';
