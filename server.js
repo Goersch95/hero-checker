@@ -54,5 +54,6 @@ app.get('/logout', (req, res) => {
 });
 
 app.use(requireAuth, express.static(path.join(__dirname, 'protected')));
+app.use('/qa', requireAuth, express.static(path.join(__dirname, 'protected-qa')));
 
 app.listen(PORT, () => console.log(`listening on ${PORT}`));

@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STV On – Hero Preview Tool</title>
+<style>
+@font-face { font-family:'Bull Text'; src:url('https://rbds-static.redbull.com/@cosmos/foundation/latest/fonts/v5.002/BullText-Regular.woff2') format('woff2'); font-weight:400; font-display:swap; }
+@font-face { font-family:'Bull Text'; src:url('https://rbds-static.redbull.com/@cosmos/foundation/latest/fonts/v5.002/BullText-Medium.woff2')  format('woff2'); font-weight:500; font-display:swap; }
+@font-face { font-family:'Noto Sans'; src:url('https://static-resources.redbull.tv/fonts/NotoSans-VariableFont.woff2') format('woff2'); font-weight:100 900; font-display:swap; }
+
+:root {
+  --f-head: 'Noto Sans', system-ui, sans-serif;
+  --f-body: 'Bull Text',  system-ui, sans-serif;
+  --gray:   #aaaaaa;
+  --ghost:  rgba(255,255,255,0.1);
+
+  /* ── Leuchttisch chrome tokens (tool UI only, not the hero overlay above) ── */
+  --lt-bg:      #F5F1E9;
+  --lt-surface: #FFFFFF;
+  --lt-sunk:    #EFE9DC;
+  --lt-raised:  #FBF8F2;
+  --lt-ink:     #1B1811;
+  --lt-ink-dim: #4A453A;
+  --lt-muted:   #8D8574;
+  --lt-line:    rgba(27,24,17,.12);
+  --lt-accent:  #DB0A40;
+  --lt-accent-ink: #fff;
+  --lt-safe:    #158A55;
+  --lt-warn:    #C56A00;
+  --lt-crop:    #C6294B;
+  --lt-mono:    ui-monospace,"SF Mono","Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;
+}
+
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:var(--lt-bg); color:var(--lt-ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; font-size:14px; min-height:100vh; display:flex; flex-direction:column; }
+
+header {
+  background:var(--lt-raised); border-bottom:1px solid var(--lt-line);
+  padding:14px 26px; display:flex; align-items:center; justify-content:space-between;
+  gap:16px; flex-wrap:wrap;
+}
+header .brand { display:flex; align-items:center; gap:12px; }
+header .mark {
+  width:30px; height:30px; border-radius:8px; background:var(--lt-accent); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12.5px; flex-shrink:0;
+}
+header h1 { font-size:15.5px; font-weight:700; letter-spacing:-.01em; color:var(--lt-ink); }
+header h1 span { display:none; }
+header .sub { font-size:11.5px; color:var(--lt-muted); margin-top:1px; }
+header .spec-chips { display:flex; gap:6px; flex-wrap:wrap; }
+header .spec-chips span {
+  font:600 10.5px/1 var(--lt-mono); letter-spacing:.02em; color:var(--lt-ink-dim);
+  background:var(--lt-surface); border:1px solid var(--lt-line); padding:6px 10px; border-radius:20px;
+}
+
+.workspace { display:flex; gap:18px; padding:20px 22px; align-items:flex-start; flex:1; }
+.canvas-col { flex-shrink:0; display:flex; flex-direction:column; gap:10px; }
+
+.preview-label { display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--lt-ink); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; font-weight:700; }
+.preview-label label { display:flex; align-items:center; gap:5px; cursor:pointer; color:var(--lt-muted); text-transform:none; letter-spacing:0; font-weight:500; }
+.preview-label input { accent-color:var(--lt-accent); }
+.toggles { display:flex; gap:14px; }
+
+.zone-legend { display:flex; gap:16px; flex-wrap:wrap; margin-top:10px; }
+.zone-legend span { display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--lt-ink-dim); }
+.zone-legend i { width:9px; height:9px; border-radius:50%; display:inline-block; flex-shrink:0; }
+
+/* ── Desktop canvas ── */
+#canvas-outer {
+  position:relative; width:960px; height:540px;
+  border:1px solid var(--lt-line); border-radius:14px; overflow:hidden; cursor:crosshair;
+  background:repeating-conic-gradient(#1a1a1a 0% 25%,#222 0% 50%) 0 0/20px 20px;
+  box-shadow:0 18px 40px -24px rgba(27,24,17,.35);
+}
+#canvas-outer.dragging { cursor:grabbing; }
+#main-canvas { display:block; position:absolute; top:0; left:0; }
+.desk-layer { position:absolute; inset:0; pointer-events:none; display:none; }
+#drop-hint {
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:10px; color:#5a5a5a; pointer-events:none;
+}
+#drop-hint .icon { font-size:40px; }
+.ruler { display:flex; justify-content:space-between; font-size:9px; color:var(--lt-muted); margin-top:4px; width:960px; font-family:var(--lt-mono); }
+.canvas-hint { font-size:11px; color:var(--lt-muted); margin-top:5px; }
+
+/* ── Device row ── */
+.device-row { display:flex; flex-direction:row; flex-wrap:wrap; gap:16px; align-items:flex-start; }
+.device-col { display:flex; flex-direction:column; gap:16px; align-items:flex-start; }
+.section-title {
+  font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--lt-ink);
+  margin-top:6px; display:flex; align-items:center; gap:8px;
+}
+.section-title .count { font-weight:500; color:var(--lt-muted); text-transform:none; letter-spacing:0; font-family:var(--lt-mono); font-size:10.5px; }
+.device {
+  display:flex; flex-direction:column; gap:7px; cursor:zoom-in; border-radius:14px;
+  padding:8px; margin:-8px; transition:background .15s,transform .15s;
+}
+.device:hover { background:var(--lt-raised); }
+.device:hover .dev-wrap, .device:hover #phone-frame, .device:hover #tv-outer { box-shadow:0 10px 26px -14px rgba(27,24,17,.45); }
+.device-label { font-size:11px; color:var(--lt-ink-dim); text-transform:uppercase; letter-spacing:.06em; display:flex; align-items:center; gap:8px; font-weight:600; }
+.expand-hint { margin-left:auto; color:var(--lt-muted); font-weight:400; text-transform:none; letter-spacing:0; font-size:10.5px; opacity:0; transition:opacity .15s; white-space:nowrap; }
+.device:hover .expand-hint { opacity:1; }
+.dev-badge { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
+
+/* Shared crop container */
+.dev-wrap {
+  position:relative; overflow:hidden;
+  border:1px solid var(--lt-line); border-radius:10px; transition:box-shadow .15s;
+  background:repeating-conic-gradient(#1a1a1a 0% 25%,#222 0% 50%) 0 0/10px 10px;
+}
+.dev-bg   { position:absolute; display:none; }
+.dev-grad { position:absolute; inset:0; pointer-events:none; }
+.dev-text { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+
+/* ── iPhone 16 Pro Max phone frame (440×956 at 50% = 220×478) ── */
+#phone-frame {
+  width:220px; height:478px; position:relative; overflow:hidden;
+  background:#0a0a0a; border-radius:24px; border:1.5px solid #2a2a2a;
+}
+/* Dynamic Island (59px real → 30px display) */
+#phone-island-bar {
+  position:absolute; top:0; left:0; right:0; height:30px;
+  background:#0a0a0a; z-index:20;
+  display:flex; align-items:center; justify-content:center;
+}
+#phone-island-pill { width:60px; height:14px; background:#000; border-radius:20px; }
+/* Hero area (440×740 real → 220×370 display, below island) */
+#mob-hero {
+  position:absolute; top:30px; left:0; width:220px; height:370px; overflow:hidden;
+  background:repeating-conic-gradient(#1a1a1a 0% 25%,#222 0% 50%) 0 0/10px 10px;
+}
+/* Content rail (74px real → 37px display) */
+#phone-rail {
+  position:absolute; top:400px; left:0; right:0; height:37px;
+  background:#0e0e0e; padding:4px 8px 0;
+}
+#phone-rail-title { font:700 6.5px/1 system-ui; color:#bbb; letter-spacing:.06em; text-transform:uppercase; margin-bottom:3px; }
+#phone-rail-thumbs { display:flex; gap:3px; }
+.phone-thumb { width:75px; height:24px; background:#1c1c1c; border-radius:2px; flex-shrink:0; }
+/* Tab bar (83px real → 41px display) */
+#phone-tabbar {
+  position:absolute; bottom:0; left:0; right:0; height:41px;
+  background:#111; border-top:1px solid #1c1c1c;
+  display:flex; justify-content:space-around; align-items:center; padding:0 4px 8px;
+}
+.phone-tab { text-align:center; }
+.phone-tab svg { display:block; margin:0 auto 1px; }
+.phone-tab-label { font:5.5px/1 system-ui; color:#777; }
+.phone-tab-label.red { color:#e63030; }
+
+/* ── Sidebar ── */
+.controls { display:flex; flex-direction:column; gap:16px; min-width:280px; max-width:280px; }
+.card {
+  background:var(--lt-surface); border:1px solid var(--lt-line); border-radius:14px;
+  padding:15px 16px; display:flex; flex-direction:column; gap:10px;
+  box-shadow:0 8px 18px -16px rgba(27,24,17,.3);
+}
+.card h2 { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--lt-ink); }
+.hint { font-size:11.5px; color:var(--lt-muted); line-height:1.5; }
+button.primary { background:var(--lt-accent); color:#fff; border:none; border-radius:9px; padding:10px; font-size:13px; font-weight:700; cursor:pointer; width:100%; transition:filter .15s; }
+button.primary:hover { filter:brightness(.9); }
+.field { display:flex; flex-direction:column; gap:4px; }
+.field label { font-size:11px; color:var(--lt-muted); }
+.stv-badge { display:inline-block; width:fit-content; background:#e63030; color:#fff; font-family:var(--f-body); font-weight:600; font-size:14px; line-height:1; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:3px; }
+.stv-badge:empty { display:none; }
+.field input, .field textarea {
+  background:var(--lt-sunk); border:1px solid var(--lt-line); border-radius:9px;
+  padding:8px 11px; font-size:13px; color:var(--lt-ink); font-family:inherit; outline:none;
+  transition:border-color .15s; resize:vertical;
+}
+.field textarea { min-height:58px; font-size:12px; line-height:1.55; }
+.field input:focus, .field textarea:focus { border-color:var(--lt-accent); }
+table.zinfo { width:100%; font-size:11px; border-collapse:collapse; }
+table.zinfo td { padding:3px 0; color:var(--lt-muted); }
+table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim); }
+
+/* Requirements card: compact numbered/icon rows */
+.req { padding:2px 0 0; gap:0; }
+.req-row { display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--lt-line); }
+.req-row:first-child { border-top:none; padding-top:2px; }
+.req-row .ico {
+  width:22px; height:22px; border-radius:50%; flex-shrink:0; margin-top:1px;
+  background:var(--lt-sunk); display:flex; align-items:center; justify-content:center;
+  font:800 11px/1 var(--lt-mono); color:var(--lt-accent);
+}
+.req-row .txt b { display:block; font-size:12.5px; margin-bottom:2px; color:var(--lt-ink); }
+.req-row .txt span { font-size:11.5px; color:var(--lt-muted); line-height:1.45; }
+
+/* Export card: sticky footer with size gauge */
+.gauge { height:7px; border-radius:4px; background:var(--lt-sunk); overflow:hidden; }
+.gauge i { display:block; height:100%; background:var(--lt-safe); width:0%; transition:width .2s,background .2s; }
+.gauge-row { display:flex; justify-content:space-between; font-size:10.5px; color:var(--lt-muted); }
+.gauge-row .mono { font-family:var(--lt-mono); color:var(--lt-ink-dim); }
+
+.exp-btn {
+  background:var(--lt-accent); color:#fff; border:none; border-radius:9px; padding:10px 12px;
+  font-size:12.5px; font-weight:700; cursor:pointer; width:100%; text-align:left;
+  display:flex; align-items:center; gap:8px; transition:filter .15s;
+}
+.exp-btn:hover:not(:disabled) { filter:brightness(.9); }
+.exp-btn:disabled { opacity:.4; cursor:not-allowed; }
+.exp-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+.ctrl { display:flex; flex-direction:column; gap:4px; }
+.ctrl-row { display:flex; justify-content:space-between; font-size:11px; color:var(--lt-muted); }
+.ctrl-row b { color:var(--lt-ink); font-weight:600; font-family:var(--lt-mono); }
+.ctrl input[type=range] { width:100%; accent-color:var(--lt-accent); }
+.zoom-input-wrap { display:flex; align-items:center; gap:4px; color:var(--lt-muted); }
+.zoom-input-wrap input {
+  width:58px; padding:2px 5px; text-align:right;
+  background:var(--lt-sunk); border:1px solid var(--lt-line); border-radius:6px;
+  font-size:11px; font-weight:600; color:var(--lt-ink); font-family:var(--lt-mono); outline:none;
+}
+.zoom-input-wrap input:focus { border-color:var(--lt-accent); }
+.zoom-input-wrap input:disabled { opacity:.5; }
+
+/* ── Device lightbox (click any preview to expand) ── */
+#device-lightbox {
+  position:fixed; inset:0; background:rgba(27,24,17,.55); backdrop-filter:blur(3px);
+  display:none; align-items:center; justify-content:center; z-index:100; padding:40px;
+  cursor:zoom-out;
+}
+#device-lightbox.open { display:flex; }
+#device-lightbox-content { cursor:default; }
+#device-lightbox-close {
+  position:absolute; top:22px; right:26px; width:38px; height:38px; border-radius:50%;
+  background:var(--lt-surface); border:1px solid var(--lt-line); color:var(--lt-ink);
+  font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+#device-lightbox-tag {
+  position:absolute; top:26px; left:30px; font:600 11px/1 var(--lt-mono); letter-spacing:.04em;
+  color:#fff; background:rgba(27,24,17,.55); padding:8px 12px; border-radius:20px;
+}
+.device.expanded { cursor:zoom-out; transform-origin:center center; }
+
+/* ═══════════════════════════════════════════════════
+   STV WEB OVERLAY CSS (Noto Sans / Bull Text)
+   All values in native device coordinate space.
+   Applied inside transform:scale(.5) wrappers.
+═══════════════════════════════════════════════════ */
+.stv, .stv * { -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+
+.stv-btn { border:none; cursor:pointer; font-family:var(--f-body); font-size:16px; font-weight:500; line-height:22px; border-radius:200px; display:inline-flex; align-items:center; white-space:nowrap; padding:10px 24px 10px 16px; gap:6px; }
+.stv-btn--primary   { background:#f8f8f8; color:#000f1e; }
+.stv-btn--secondary { background:var(--ghost); color:#fff; }
+.stv-btn--icon      { background:var(--ghost); color:#fff; padding:10px; }
+.stv-btn-icon { width:22px; height:22px; flex-shrink:0; }
+
+/* Desktop (1920×1080 space, entspricht 1:1 der 3840×2160 UBA) */
+.desk-content { position:absolute; bottom:75px; left:75px; right:75px; }
+.desk-group   { display:flex; flex-direction:column; gap:16px; max-width:800px; }
+.desk-texts   { display:flex; flex-direction:column; gap:21px; }
+.desk-title   { font-family:var(--f-head); font-weight:700; font-size:48px; line-height:61px; color:#fff; margin:0; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.desk-meta    { font-family:var(--f-body); font-weight:500; font-size:19px; line-height:27px; color:var(--gray); }
+.desk-meta:empty { display:none; }
+.desk-desc    { font-family:var(--f-body); font-weight:500; font-size:20px; line-height:27px; color:var(--gray); margin:0; display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden; }
+.desk-btns    { display:flex; align-items:center; gap:11px; margin-top:8px; flex-wrap:wrap; }
+.desk-btns .stv-btn       { font-size:21px; padding:13px 32px 13px 21px; gap:8px; }
+.desk-btns .stv-btn--icon { padding:13px; }
+.desk-btns .stv-btn-icon  { width:29px; height:29px; }
+
+/* Tablet (768×500 space) */
+.tab-overlay { position:absolute; bottom:0; left:0; right:0; display:flex; flex-direction:column; align-items:center; gap:6px; padding:0 24px 20px; }
+.tab-group   { display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; }
+.tab-texts   { display:flex; flex-direction:column; align-items:center; gap:16px; width:100%; }
+.tab-title   { font-family:var(--f-head); font-weight:700; font-size:36px; line-height:46px; color:#fff; margin:0; text-align:center; width:100%; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.tab-meta    { font-family:var(--f-body); font-weight:500; font-size:14px; line-height:20px; color:var(--gray); text-align:center; }
+.tab-meta:empty { display:none; }
+.tab-desc    { font-family:var(--f-body); font-weight:500; font-size:15px; line-height:18px; color:var(--gray); margin:0; text-align:center; width:100%; display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden; }
+.tab-btns    { display:flex; align-items:center; gap:8px; justify-content:center; width:250px; flex-wrap:wrap; }
+
+/* Web Mobile (390×740 space) */
+.wmob-overlay { position:absolute; bottom:0; left:0; right:0; display:flex; flex-direction:column; align-items:center; gap:6px; padding:0 16px 20px; }
+.wmob-group   { display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; }
+.wmob-texts   { display:flex; flex-direction:column; align-items:center; gap:6px; width:100%; }
+.wmob-title   { font-family:var(--f-head); font-weight:700; font-size:21px; line-height:26px; color:#fff; margin:0; text-align:center; width:100%; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.wmob-meta    { font-family:var(--f-body); font-weight:500; font-size:14px; line-height:20px; color:var(--gray); text-align:center; }
+.wmob-meta:empty { display:none; }
+.wmob-desc    { font-family:var(--f-body); font-weight:500; font-size:15px; line-height:18px; color:var(--gray); margin:0; text-align:center; width:100%; display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden; }
+.wmob-btns    { display:flex; align-items:center; gap:8px; justify-content:center; flex-wrap:wrap; }
+
+/* ═══════════════════════════════════════════════════
+   NATIVE iOS APP OVERLAY (440×740 space)
+   System font, no CTA buttons, 3-line description
+   based on screenshot analysis of STV On iOS app.
+═══════════════════════════════════════════════════ */
+.ios-overlay {
+  position:absolute; bottom:0; left:0; right:0;
+  display:flex; flex-direction:column; align-items:center;
+  padding:0 22px 28px; gap:10px;
+}
+/* Title shown as text (native app shows show logo image) */
+.ios-title {
+  font-family:system-ui,-apple-system,sans-serif;
+  font-weight:700; font-size:22px; line-height:28px;
+  color:#fff; text-align:center;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.ios-title:empty { display:none; }
+/* 3 lines of description, then MEHR pill */
+.ios-desc-block { display:flex; flex-direction:column; align-items:center; gap:8px; width:100%; }
+.ios-desc {
+  font-family:system-ui,-apple-system,sans-serif;
+  font-weight:400; font-size:15px; line-height:22px;
+  color:rgba(255,255,255,.82); text-align:center;
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+}
+.ios-desc:empty { display:none; }
+.ios-mehr {
+  background:rgba(255,255,255,.22); border-radius:20px;
+  padding:4px 16px;
+  font-family:system-ui,-apple-system,sans-serif;
+  font-size:11px; font-weight:700; letter-spacing:.06em;
+  color:#fff; white-space:nowrap;
+  border:none;
+}
+
+/* ═══════════════════════════════════════════════════
+   SAMSUNG SMART TV OVERLAY (1920×1080 space)
+   Based on samsung.servustv.com layout analysis.
+═══════════════════════════════════════════════════ */
+.tv-home-pill {
+  position:absolute; top:40px; left:40px;
+  height:60px; background:#404852; border-radius:999px;
+  display:flex; align-items:center;
+  padding:8px 20px 8px 8px; gap:10px;
+}
+.tv-home-icon {
+  width:44px; height:44px;
+  background:rgba(255,255,255,.12); border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+}
+.tv-home-pill span {
+  font-family:var(--f-head); font-size:16px; font-weight:500;
+  color:#F8F8F8; white-space:nowrap;
+}
+/* ServusTV On App-Logo (eingebettet, einmal definiert) */
+.app-logo {
+  background:url('data:image/png;base64,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') center/contain no-repeat;
+}
+.tv-logo {
+  position:absolute; top:40px; right:48px;
+  width:66px; height:66px;
+  filter:drop-shadow(0 6px 20px rgba(0,0,0,.45));
+}
+.tv-content {
+  position:absolute; left:80px; top:330px;
+  display:flex; flex-direction:column; gap:22px; max-width:880px;
+}
+.tv-title {
+  font-family:var(--f-head); font-size:58px; font-weight:700;
+  line-height:72px; color:#fff; margin:0;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; max-height:144px;
+}
+.tv-title:empty { display:none; }
+.tv-badge-row { display:flex; align-items:center; gap:14px; flex-wrap:nowrap; }
+.tv-badge {
+  background:#e02020;
+  font-family:var(--f-head); font-size:21px; font-weight:600;
+  line-height:32px; height:32px; padding:0 10px;
+  border-radius:4px; letter-spacing:.01em; white-space:nowrap; flex-shrink:0;
+}
+.tv-hd {
+  border:2px solid #9aa0a6; border-radius:6px;
+  font-family:var(--f-head); font-size:16px; font-weight:700;
+  line-height:1; padding:5px 7px; color:#e8eaed; letter-spacing:.03em;
+  white-space:nowrap; flex-shrink:0;
+}
+.tv-meta {
+  font-family:var(--f-head); font-size:22px; font-weight:500;
+  line-height:30px; color:#b8bcc2;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.tv-meta:empty { display:none; }
+.tv-desc {
+  font-family:var(--f-head); font-size:26px; font-weight:400;
+  line-height:36px; color:#c7cbd0; margin:0;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; max-height:72px;
+}
+.tv-desc:empty { display:none; }
+.tv-btn {
+  display:inline-flex; align-items:center; gap:12px;
+  background:#F8F8F8; color:#000F1E; border:none; border-radius:999px;
+  padding:20px 36px 20px 24px; width:fit-content; margin-top:6px;
+  font-family:var(--f-head); font-size:27px; font-weight:500;
+  line-height:34px; cursor:default; white-space:nowrap;
+}
+/* Karussell-Indikator */
+.tv-dots {
+  position:absolute; top:758px; left:0; right:0;
+  display:flex; justify-content:center; align-items:center; gap:12px;
+}
+.tv-dot { width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.32); }
+.tv-dot.active { width:30px; border-radius:5px; background:#fff; }
+/* Kategorien-Reihe */
+.tv-cats { position:absolute; left:80px; top:816px; display:flex; flex-direction:column; gap:20px; }
+.tv-cats-title { font-family:var(--f-head); font-size:30px; font-weight:700; color:#dfe2e6; }
+.tv-cats-row { display:flex; gap:24px; }
+.tv-cat {
+  width:352px; height:198px; border-radius:14px; flex-shrink:0;
+  background:linear-gradient(135deg,#2c323b 0%,#181c22 100%);
+  position:relative; overflow:hidden;
+}
+.tv-cat::after {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(120% 90% at 20% 0%,rgba(255,255,255,.07),transparent 55%);
+}
+.tv-cat:nth-child(2) { background:linear-gradient(135deg,#26333a 0%,#151b20 100%); }
+.tv-cat:nth-child(3) { background:linear-gradient(135deg,#333039 0%,#1a181f 100%); }
+.tv-cat:nth-child(4) { background:linear-gradient(135deg,#2e2c28 0%,#191815 100%); }
+.tv-cat:nth-child(5) { background:linear-gradient(135deg,#28313b 0%,#161b21 100%); }
+.tv-cat:nth-child(6) { background:linear-gradient(135deg,#31292c 0%,#1b1618 100%); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="mark">on</span>
+    <div>
+      <h1>STV On · Hero Checker</h1>
+      <div class="sub">Universal Base Asset &middot; QA-Umgebung, nicht produktiv</div>
+    </div>
+  </div>
+  <div class="spec-chips">
+    <span>3840×2160</span><span>JPG</span><span>300&nbsp;ppi</span><span>sRGB</span><span>3–12&nbsp;MB</span>
+  </div>
+</header>
+
+<div class="workspace">
+
+  <!-- Canvas column -->
+  <div class="canvas-col">
+
+    <!-- Desktop -->
+    <div>
+      <div class="preview-label">
+        <span>Universal Base Asset <span style="color:#444;font-weight:400">3840 × 2160</span></span>
+        <div class="toggles">
+          <label><input type="checkbox" id="show-nav" checked> Navigation</label>
+          <label><input type="checkbox" id="show-focus" checked> Sicherheitszonen</label>
+        </div>
+      </div>
+      <div id="canvas-outer">
+        <canvas id="main-canvas" width="960" height="540"></canvas>
+        <div id="desk-grad" class="desk-layer" style="background:
+          linear-gradient(180deg,rgba(21,22,25,.4) 0,transparent 20%),
+          radial-gradient(100% 100% at 80.71% 0,transparent 41.5%,#151619 100%)"></div>
+        <div id="desk-nav" class="desk-layer">
+          <div style="width:1920px;height:1080px;transform:scale(.5);transform-origin:top left;position:relative">
+            <!-- Netzwerk-Leiste -->
+            <div style="height:48px;background:#0c0c0e;display:flex;align-items:center;justify-content:center;gap:64px;border-bottom:1px solid rgba(255,255,255,.06)">
+              <img src="https://res.cloudinary.com/hhhkasdw4/image/upload/v1773693837/streaming-platform/web/stv/servus-logo.svg" height="19" alt="Servus" style="opacity:.65">
+              <img src="https://res.cloudinary.com/hhhkasdw4/image/upload/v1773693863/streaming-platform/web/stv/bergwelten-logo.svg" height="19" alt="Bergwelten" style="opacity:.65">
+              <img src="https://res.cloudinary.com/hhhkasdw4/image/upload/v1773693852/streaming-platform/web/stv/speedweek-logo.svg" height="19" alt="Speedweek" style="opacity:.65">
+              <img src="https://res.cloudinary.com/hhhkasdw4/image/upload/v1773693836/streaming-platform/web/stv/redbulltv-logo.svg" height="19" alt="Red Bull TV" style="opacity:.65">
+            </div>
+            <!-- Haupt-Navigation -->
+            <div style="height:96px;display:flex;align-items:center;justify-content:space-between;padding:0 72px">
+              <!-- Linke Gruppe: Logo + Pill -->
+              <div style="display:flex;align-items:center;gap:20px">
+                <div class="app-logo" style="width:42px;height:42px;flex-shrink:0"></div>
+                <div style="display:flex;align-items:center;gap:12px;background:rgba(20,20,26,.36);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:100px;border:1px solid rgba(255,255,255,.08);padding:0 12px;height:68px;font:400 25px/1 system-ui,sans-serif;color:rgba(255,255,255,.92);letter-spacing:-.01em;white-space:nowrap">
+                  <span style="background:#fff;color:#0c0c0e;font-weight:500;padding:14px 26px;border-radius:100px">Startseite</span>
+                  <span style="padding:0 6px">Live TV</span>
+                  <span style="padding:0 6px">Sport</span>
+                  <span style="padding:0 6px">Nachrichten</span>
+                  <span style="padding:0 6px">Sendungen</span>
+                </div>
+              </div>
+              <!-- Icons rechts -->
+              <div style="display:flex;align-items:center;gap:14px">
+                <div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center">
+                  <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </div>
+                <div class="app-logo" style="width:52px;height:52px"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="desk-text" class="desk-layer">
+          <div class="stv" style="width:1920px;height:1080px;transform:scale(.5);transform-origin:top left;position:relative">
+            <div class="desk-content">
+              <div class="desk-group">
+                <div class="desk-texts">
+                  <h2 class="desk-title" id="td"></h2>
+                  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                    <div class="stv-badge" id="bd"></div>
+                    <div class="desk-meta" id="md"></div>
+                  </div>
+                  <p class="desk-desc" id="dd"></p>
+                </div>
+                <div class="desk-btns">
+                  <button class="stv-btn stv-btn--primary" type="button">
+                    <svg class="stv-btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    <span>Jetzt ansehen</span>
+                  </button>
+                  <button class="stv-btn stv-btn--icon" type="button">
+                    <svg class="stv-btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="drop-hint">
+          <div class="icon">⬆</div>
+          <div>Bild hier ablegen</div>
+          <div style="color:#555;font-size:12px">oder Button rechts verwenden</div>
+        </div>
+      </div>
+      <div class="ruler"><span>0</span><span>960</span><span>1920 (Mitte)</span><span>2880</span><span>3840</span></div>
+      <div class="canvas-hint">Ziehen: Bild verschieben · Scrollrad: Zoom · Crops immer mittig (c_fill)</div>
+      <div class="zone-legend">
+        <span><i style="background:#C6294B"></i>Crop-Zone · 270&nbsp;px oben/unten</span>
+        <span><i style="background:#158A55"></i>Art Safe Area</span>
+        <span><i style="background:#C56A00"></i>UI-Bereich (Plattform)</span>
+      </div>
+    </div>
+
+    <!-- Kleine Devices: Web Mobile + iPhone + Tablet -->
+    <div class="section-title">Kleine Devices</div>
+    <div class="device-row">
+
+      <!-- Web Mobile: 430×932 screen, 36px nav + 670px hero → display at 50% = 215×(18+335) -->
+      <div class="device" data-name="Web Mobile · 430×670" onclick="openDeviceLightbox(this,event)">
+        <div class="device-label">
+          <span class="dev-badge" style="background:#c864ff"></span>
+          Web Mobile <span style="color:#444;font-weight:400">430 × 670</span>
+          <span class="expand-hint">Vergrößern ↗</span>
+        </div>
+        <div style="width:215px;border:1px solid #333;border-radius:4px;overflow:hidden">
+          <!-- Brand nav bar: 430×36 native → 215×18 display -->
+          <div style="width:215px;height:18px;overflow:hidden;background:#131313">
+            <div style="width:430px;height:36px;transform:scale(.5);transform-origin:top left;
+              display:flex;align-items:center;justify-content:space-around;padding:0 32px">
+              <!-- Icon 1: S-mark -->
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round"><path d="M20 7C20 4.8 18.2 3 16 3H8C5.8 3 4 4.8 4 7s1.8 4 4 4h8c2.2 0 4 1.8 4 4s-1.8 4-4 4H8c-2.2 0-4-1.8-4-4"/></svg>
+              <!-- Icon 2: Antler/stag shape -->
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round"><path d="M12 20v-8M8 12V6l-2-3M16 12V6l2-3M6 9c-2 0-2 3 0 3M18 9c2 0 2 3 0 3M9 12H7M17 12h-2"/></svg>
+              <!-- Icon 3: 2×2 grid -->
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#999"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>
+              <!-- Icon 4: Headphones -->
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round"><path d="M3 14V12a9 9 0 0 1 18 0v2"/><rect x="2" y="14" width="4" height="6" rx="2"/><rect x="18" y="14" width="4" height="6" rx="2"/></svg>
+            </div>
+          </div>
+          <!-- Hero crop: 430×670 → 215×335 at 50% -->
+          <div class="dev-wrap" style="width:215px;height:335px">
+            <img id="wmob-bg" class="dev-bg" alt="">
+            <div class="dev-grad" style="background:
+              linear-gradient(180deg,rgba(21,22,25,.8) 0,transparent 20%),
+              linear-gradient(0deg,#151619 0,#151619 15%,transparent 80%)"></div>
+            <div class="dev-text">
+              <div class="stv" style="width:430px;height:670px;transform:scale(.5);transform-origin:top left;position:relative">
+                <div class="wmob-overlay">
+                  <div class="wmob-group">
+                    <div class="wmob-texts">
+                      <h2 class="wmob-title" id="tw"></h2>
+                      <div class="stv-badge" id="bw"></div>
+                      <div class="wmob-meta" id="mw"></div>
+                      <p class="wmob-desc" id="dw"></p>
+                    </div>
+                    <div class="wmob-btns">
+                      <button class="stv-btn stv-btn--primary" type="button">
+                        <svg class="stv-btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                        <span>Jetzt ansehen</span>
+                      </button>
+                          <button class="stv-btn stv-btn--icon" type="button">
+                        <svg class="stv-btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- iPhone 16 Pro Max native: 440×956 at 50% = 220×478 -->
+      <!-- Hero crop within: 440×740, below Dynamic Island (59px→30px) -->
+      <div class="device" data-name="iOS nativ · iPhone 16 Pro Max" onclick="openDeviceLightbox(this,event)">
+        <div class="device-label">
+          <span class="dev-badge" style="background:#ff9050"></span>
+          iOS nativ <span style="color:#444;font-weight:400">iPhone 16 Pro Max</span>
+          <span class="expand-hint">Vergrößern ↗</span>
+        </div>
+
+        <div id="phone-frame">
+          <!-- Dynamic Island -->
+          <div id="phone-island-bar">
+            <div id="phone-island-pill"></div>
+          </div>
+
+          <!-- Hero crop 440×740 → 220×370 display -->
+          <div id="mob-hero">
+            <img id="mob-bg" class="dev-bg" alt="">
+            <!-- Native iOS gradient: strong top (nav) + strong bottom (text area) -->
+            <div class="dev-grad" style="background:
+              linear-gradient(180deg,rgba(0,0,0,.65) 0,transparent 18%),
+              linear-gradient(0deg,rgba(12,12,15,.95) 0,rgba(12,12,15,.95) 20%,transparent 62%)"></div>
+            <!-- Native iOS text overlay (440×740 space, scaled .5) -->
+            <div class="dev-text">
+              <div style="width:440px;height:740px;transform:scale(.5);transform-origin:top left;position:relative">
+                <div class="ios-overlay">
+                  <div class="ios-title" id="ti"></div>
+                  <div class="stv-badge" id="bi" style="margin-bottom:4px"></div>
+                  <div class="ios-desc-block">
+                    <p class="ios-desc" id="di"></p>
+                    <button class="ios-mehr" type="button">MEHR</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Content rail (74px real → 37px display) -->
+          <div id="phone-rail">
+            <div id="phone-rail-title">Aktuelle Sendungen</div>
+            <div id="phone-rail-thumbs">
+              <div class="phone-thumb"></div>
+              <div class="phone-thumb"></div>
+            </div>
+          </div>
+
+          <!-- Tab bar (83px real → 41px display) -->
+          <div id="phone-tabbar">
+            <div class="phone-tab">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="color:#777"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+              <div class="phone-tab-label">Startseite</div>
+            </div>
+            <div class="phone-tab">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="color:#777"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94C8.32 14.91 10.03 16.3 12 16.73V19H9v2h6v-2h-3v-2.27c1.97-.43 3.68-1.82 4.61-3.79C18.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2z"/></svg>
+              <div class="phone-tab-label">Sport</div>
+            </div>
+            <div class="phone-tab">
+              <div style="width:22px;height:16px;background:#e63030;border-radius:3px;margin:0 auto 1px;display:flex;align-items:center;justify-content:center">
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+              <div class="phone-tab-label red">Sendungen</div>
+            </div>
+            <div class="phone-tab">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="color:#777"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
+              <div class="phone-tab-label">Live TV</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tablet 768×500 → 384×250 at 50% -->
+      <div class="device" data-name="Tablet · 768×500" onclick="openDeviceLightbox(this,event)">
+        <div class="device-label">
+          <span class="dev-badge" style="background:#00c8ff"></span>
+          Tablet <span style="color:#444;font-weight:400">768 × 500</span>
+          <span class="expand-hint">Vergrößern ↗</span>
+        </div>
+        <div class="dev-wrap" style="width:384px;height:250px">
+          <img id="tab-bg" class="dev-bg" alt="">
+          <div class="dev-grad" style="background:
+            linear-gradient(180deg,rgba(21,22,25,.4) 0,transparent 25%),
+            linear-gradient(0deg,#151619 0,transparent 64.2%)"></div>
+          <div class="dev-text">
+            <div class="stv" style="width:768px;height:500px;transform:scale(.5);transform-origin:top left;position:relative">
+              <div class="tab-overlay">
+                <div class="tab-group">
+                  <div class="tab-texts">
+                    <h2 class="tab-title" id="tt"></h2>
+                    <div class="stv-badge" id="bt"></div>
+                    <div class="tab-meta" id="mt"></div>
+                    <p class="tab-desc" id="dt"></p>
+                  </div>
+                  <div class="tab-btns">
+                    <button class="stv-btn stv-btn--primary" type="button">
+                      <svg class="stv-btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                      <span>Jetzt ansehen</span>
+                    </button>
+                      <button class="stv-btn stv-btn--icon" type="button">
+                      <svg class="stv-btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /device-row -->
+
+    <!-- Große Devices: Smart TV + Wide Hero -->
+    <div class="section-title">Große Devices</div>
+    <div class="device-col">
+
+      <!-- Smart TV -->
+      <div class="device" data-name="Smart TV · 1920×1080" onclick="openDeviceLightbox(this,event)">
+        <div class="preview-label">
+          <span>Smart TV <span style="color:#444;font-weight:400">1920 × 1080</span></span>
+          <div class="toggles">
+            <label><input type="checkbox" id="show-tvui" checked> Oberfläche</label>
+            <label><input type="checkbox" id="show-hd" checked> HD-Badge</label>
+            <span class="expand-hint">Vergrößern ↗</span>
+          </div>
+        </div>
+        <div id="tv-outer" style="width:960px;height:540px;position:relative;overflow:hidden;background:#181B20;border-radius:4px;border:1px solid #333">
+          <img id="tv-bg" class="dev-bg" alt="">
+          <div style="position:absolute;inset:0;pointer-events:none;background:
+            linear-gradient(180deg,rgba(15,18,22,.45) 0%,transparent 16%),
+            linear-gradient(90deg,rgba(15,18,22,.8) 0%,rgba(15,18,22,.3) 30%,transparent 58%),
+            linear-gradient(0deg,#0f1216 0%,rgba(15,18,22,.96) 16%,rgba(15,18,22,.5) 34%,transparent 58%)"></div>
+          <div style="position:absolute;inset:0;overflow:hidden">
+            <div class="stv" style="width:1920px;height:1080px;transform:scale(.5);transform-origin:top left;position:relative">
+              <!-- UI-Chrome (per Checkbox ausblendbar) -->
+              <div id="tv-chrome" style="position:absolute;inset:0">
+                <div class="tv-home-pill">
+                  <div class="tv-home-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="#F8F8F8"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                  </div>
+                  <span>Startseite</span>
+                </div>
+                <div class="tv-logo app-logo"></div>
+                <div class="tv-dots">
+                  <span class="tv-dot active"></span>
+                  <span class="tv-dot"></span>
+                  <span class="tv-dot"></span>
+                  <span class="tv-dot"></span>
+                  <span class="tv-dot"></span>
+                  <span class="tv-dot"></span>
+                  <span class="tv-dot"></span>
+                  <span class="tv-dot"></span>
+                </div>
+                <div class="tv-cats">
+                  <div class="tv-cats-title">Kategorien</div>
+                  <div class="tv-cats-row">
+                    <div class="tv-cat"></div>
+                    <div class="tv-cat"></div>
+                    <div class="tv-cat"></div>
+                    <div class="tv-cat"></div>
+                    <div class="tv-cat"></div>
+                    <div class="tv-cat"></div>
+                  </div>
+                </div>
+              </div>
+              <!-- Hero-Inhalt -->
+              <div class="tv-content">
+                <h2 class="tv-title" id="ttv"></h2>
+                <div class="tv-badge-row">
+                  <div class="stv-badge tv-badge" id="btv"></div>
+                  <div class="tv-hd" id="tv-hd">HD</div>
+                  <div class="tv-meta" id="mtv"></div>
+                </div>
+                <p class="tv-desc" id="dtv"></p>
+                <button class="tv-btn" type="button">
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                  Jetzt ansehen
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+    <!-- Wide Hero 2000×825 -->
+    <div class="device" data-name="Wide Hero · 2000×825" onclick="openDeviceLightbox(this,event)">
+      <div class="device-label">
+        <span class="dev-badge" style="background:#50d250"></span>
+        Wide Hero <span style="color:#444;font-weight:400">2000 × 825</span>
+        <span class="expand-hint">Vergrößern ↗</span>
+      </div>
+      <!-- Wrapper: Brand-Leiste (36px nativ) + Bildbereich (825px nativ), beide bei 0.4 scale -->
+      <div style="width:800px;background:#0c0c0e;display:flex;flex-direction:column">
+        <!-- Brand-Leiste: 36px nativ × 0.4 = 14.4px display -->
+        <div style="height:14.4px;overflow:hidden;flex-shrink:0">
+          <div style="width:2000px;height:36px;background:#0c0c0e;transform:scale(.4);transform-origin:top left;display:flex;align-items:center;justify-content:center;gap:48px">
+            <img src="https://res.cloudinary.com/hhhkasdw4/image/upload/v1773693837/streaming-platform/web/stv/servus-logo.svg" height="14" alt="Servus" style="opacity:.65">
+            <img src="https://res.cloudinary.com/hhhkasdw4/image/upload/v1773693863/streaming-platform/web/stv/bergwelten-logo.svg" height="14" alt="Bergwelten" style="opacity:.65">
+            <img src="https://res.cloudinary.com/hhhkasdw4/image/upload/v1773693852/streaming-platform/web/stv/speedweek-logo.svg" height="14" alt="Speedweek" style="opacity:.65">
+            <img src="https://res.cloudinary.com/hhhkasdw4/image/upload/v1773693836/streaming-platform/web/stv/redbulltv-logo.svg" height="14" alt="Red Bull TV" style="opacity:.65">
+          </div>
+        </div>
+        <!-- Bildbereich 2000×825 -->
+        <div class="dev-wrap" style="width:800px;height:330px">
+          <img id="wide-bg" class="dev-bg" alt="">
+          <div class="dev-grad" style="background:
+            linear-gradient(180deg,rgba(21,22,25,.4) 0,transparent 20%),
+            radial-gradient(100% 100% at 80.71% 0,transparent 41.5%,#151619 100%)"></div>
+          <div class="dev-text">
+            <div class="stv" style="width:2000px;height:825px;transform:scale(.4);transform-origin:top left;position:relative">
+              <div style="position:absolute;top:0;left:0;right:0">
+                <div style="height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 60px">
+                  <div style="display:flex;align-items:center;gap:16px">
+                    <div class="app-logo" style="width:32px;height:32px;flex-shrink:0"></div>
+                    <div style="display:flex;align-items:center;gap:10px;background:rgba(20,20,26,.36);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:100px;border:1px solid rgba(255,255,255,.08);padding:0 10px;height:50px;font:400 19px/1 system-ui,sans-serif;color:rgba(255,255,255,.92);letter-spacing:-.01em;white-space:nowrap">
+                      <span style="background:#fff;color:#0c0c0e;font-weight:500;padding:11px 20px;border-radius:100px">Startseite</span><span style="padding:0 4px">Live TV</span><span style="padding:0 4px">Sport</span><span style="padding:0 4px">Nachrichten</span><span style="padding:0 4px">Sendungen</span>
+                    </div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center">
+                      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    </div>
+                    <div class="app-logo" style="width:40px;height:40px"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="desk-content">
+                <div class="desk-group">
+                  <div class="desk-texts">
+                    <h2 class="desk-title" id="t2"></h2>
+                    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+                      <div class="stv-badge" id="b2" style="font-size:18px;padding:4px 10px"></div>
+                      <div class="desk-meta" id="m2"></div>
+                    </div>
+                    <p class="desk-desc" id="d2" style="-webkit-line-clamp:3"></p>
+                  </div>
+                  <div class="desk-btns">
+                    <button class="stv-btn stv-btn--primary" type="button">
+                      <svg class="stv-btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                      <span>Jetzt ansehen</span>
+                    </button>
+                    <button class="stv-btn stv-btn--icon" type="button">
+                      <svg class="stv-btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /device-col -->
+  </div><!-- /canvas-col -->
+
+  <!-- Sidebar -->
+  <div class="controls">
+
+    <div class="card req">
+      <h2 style="padding:13px 0 0 2px">Artwork Requirements</h2>
+      <div class="req-row"><span class="ico">1</span><div class="txt"><b>Image specs</b><span>3840×2160 · JPG · 300&nbsp;ppi · sRGB · 8&nbsp;Bit · 3–12&nbsp;MB ideal (max. 20&nbsp;MB)</span></div></div>
+      <div class="req-row"><span class="ico">2</span><div class="txt"><b>Kein Text/Logo</b><span>Keine Logos, Titelgrafiken, Credits oder Copyright-Hinweise – das ergänzt die Plattform</span></div></div>
+      <div class="req-row"><span class="ico">3</span><div class="txt"><b>Vollformat</b><span>Motiv zentriert halten, Bildränder sauber ausarbeiten</span></div></div>
+    </div>
+
+    <div class="card">
+      <h2>Bild laden</h2>
+      <input type="file" id="file-input" accept="image/*" style="display:none">
+      <button class="primary" onclick="document.getElementById('file-input').click()">📂 Bild auswählen</button>
+      <p class="hint">oder direkt auf die Vorschau ziehen</p>
+    </div>
+
+
+    <div class="card">
+      <h2>Bildposition</h2>
+      <div class="ctrl">
+        <div class="ctrl-row">
+          <span>Zoom</span>
+          <span class="zoom-input-wrap"><input type="number" id="zoom-input" min="1" max="1000" step="1" value="100" disabled> %</span>
+        </div>
+        <input type="range" id="sl-zoom" min="1" max="500" value="100" disabled>
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-row"><span>Horizontal</span><b id="sl-x-val">—</b></div>
+        <input type="range" id="sl-x" min="-3000" max="0" value="0" disabled>
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-row"><span>Vertikal</span><b id="sl-y-val">—</b></div>
+        <input type="range" id="sl-y" min="-3000" max="0" value="0" disabled>
+      </div>
+      <p class="hint">Bild kann nicht kleiner als 3840 × 2160 skaliert oder aus dem Canvas-Bereich geschoben werden.</p>
+    </div>
+
+    <div class="card">
+      <h2>Metadaten</h2>
+      <div class="field">
+        <label style="display:flex;justify-content:space-between">Titel <span id="title-count" style="color:#aaa;font-weight:400">14 / 50</span></label>
+        <input type="text" id="f-title" value="Beispiel Titel" maxlength="50" oninput="updateText();document.getElementById('title-count').textContent=this.value.length+' / 50'">
+      </div>
+      <div class="field">
+        <label>Badge <span style="color:#444;font-size:10px">(leer = ausgeblendet)</span></label>
+        <input type="text" id="f-badge" value="NEUE FOLGE" oninput="updateText()">
+      </div>
+      <div class="field">
+        <label>Metadaten <span style="color:#444;font-size:10px">(z. B. „1 Std. 28 Min.")</span></label>
+        <input type="text" id="f-meta" value="1 Std. 28 Min." oninput="updateText()">
+      </div>
+      <div class="field">
+        <label style="display:flex;justify-content:space-between">Beschreibung <span id="desc-count" style="color:#aaa;font-weight:400"></span></label>
+        <textarea id="f-desc" rows="14" maxlength="500" oninput="updateText();document.getElementById('desc-count').textContent=this.value.length+' / 500'">Dies ist ein Beispieltext, der genau die richtige Länge hat. Er zeigt, wie viel Inhalt in diesem Bereich Platz findet und wie Beschreibungen im Layout wirken. Ein guter Text informiert, weckt Interesse und bringt den Inhalt präzise auf den Punkt. Mehrere Zeilen helfen dabei, die Darstellung realistisch einzuschätzen. Diese Vorschau zeigt, wie der Text im Hero-Bereich erscheint und welche Länge sich für unterschiedliche Formate eignet. So lässt sich die optimale Textmenge beurteilen.</textarea>
+      </div>
+    </div>
+
+
+    <div class="card export-card">
+      <h2>Exportieren</h2>
+      <div class="gauge-row"><span>Letzter Export</span><span class="mono" id="exp-gauge-label">–</span></div>
+      <div class="gauge"><i id="exp-gauge-fill"></i></div>
+      <button class="exp-btn" id="exp-d" disabled onclick="exportHero()">
+        <span class="exp-dot" style="background:#888"></span>
+        <span>UBA 16:9 · <b id="exp-size">3840 × 2160</b></span>
+      </button>
+      <p class="hint">Exportiert als JPG, 300 ppi, sRGB, 8 Bit/Kanal, in der größtmöglichen Auflösung des Originalbilds (mind. 3840 × 2160 px). Zieldateigröße 3–12 MB ideal (max. 20 MB). Enthält nur das Bild – kein Text, keine Logos. Dateiname: TITEL_ServusTVON.jpg</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- Device-Lightbox: Klick auf eine Vorschau vergrößert sie, Klick daneben / Esc schließt -->
+<div id="device-lightbox" onclick="if(event.target===this) closeDeviceLightbox()">
+  <span id="device-lightbox-tag"></span>
+  <button id="device-lightbox-close" onclick="closeDeviceLightbox()" aria-label="Schließen">✕</button>
+  <div id="device-lightbox-content"></div>
+</div>
+
+<script>
+const CW=3840, CH=2160, S=.25;
+
+// UBA-Sicherheitszonen (aus der offiziellen 3840×2160 PSD-Vorlage, Pixel-exakt)
+const CROP_TOP    = {x:0,    y:0,    w:3840, h:270};  // immer kappungsgefährdet
+const CROP_BOTTOM = {x:0,    y:1890, w:3840, h:270};  // immer kappungsgefährdet
+const SAFE_V       = {x:1400, y:270,  w:1040, h:1330}; // Art Safe Area, vertikaler Arm
+const SAFE_H       = {x:1110, y:561,  w:1622, h:749};  // Art Safe Area, horizontaler Arm
+const UI_AREA      = {x:1113, y:1600, w:1613, h:290};  // von der Plattform reserviert (Buttons/Text)
+
+// ox = horizontaler Ausschnitt-Versatz als Anteil der Viewport-Breite
+// (positiv = Bild wandert in der Vorschau nach rechts, passend zur realen Ausspielung)
+const DEVS=[
+  {w:1920,h:1080,id:'tv-bg',  s:.5,ox:0,   color:'rgba(255,100,50,.8)', label:'1920×1080'},
+  {w:768, h:500, id:'tab-bg', s:.5,ox:0,   color:'rgba(0,200,255,.8)',  label:'768×500'},
+  {w:430, h:670, id:'wmob-bg',s:.5,ox:.04, color:'rgba(200,100,255,.8)',label:'430×670'},
+  {w:440, h:740, id:'mob-bg', s:.5,ox:.04, color:'rgba(255,150,60,.8)', label:'440×740'},
+  {w:2000,h:825, id:'wide-bg',s:.4,ox:.04, color:'rgba(80,210,80,.8)',  label:'2000×825'},
+];
+
+let img=null, imgUrl=null;
+let posX=0, posY=0, zoom=1, minZoom=1;
+let dragging=false, didDrag=false, dragX0, dragY0, posX0, posY0;
+
+const canvas=document.getElementById('main-canvas');
+const ctx=canvas.getContext('2d');
+const outer=document.getElementById('canvas-outer');
+
+function renderCanvas() {
+  ctx.clearRect(0,0,CW*S,CH*S);
+  ctx.fillStyle='#1a1a1a'; ctx.fillRect(0,0,CW*S,CH*S);
+  if(img) ctx.drawImage(img,posX*S,posY*S,img.naturalWidth*zoom*S,img.naturalHeight*zoom*S);
+  const sf=document.getElementById('show-focus');
+  if(sf&&sf.checked){
+    ctx.save();
+    const r=z=>({x:z.x*S,y:z.y*S,w:z.w*S,h:z.h*S});
+
+    // Crop-Zone: oben/unten immer kappungsgefährdet
+    ctx.fillStyle='rgba(255,60,60,.16)';
+    ctx.strokeStyle='rgba(255,60,60,.85)';
+    ctx.lineWidth=1.5;
+    [CROP_TOP,CROP_BOTTOM].forEach(z=>{
+      const b=r(z);
+      ctx.fillRect(b.x,b.y,b.w,b.h);
+      ctx.strokeRect(b.x,b.y,b.w,b.h);
+    });
+
+    // UI-Bereich: von der Plattform reserviert (Buttons/Text)
+    {
+      const b=r(UI_AREA);
+      ctx.fillStyle='rgba(255,150,0,.16)';
+      ctx.strokeStyle='rgba(255,150,0,.85)';
+      ctx.fillRect(b.x,b.y,b.w,b.h);
+      ctx.strokeRect(b.x,b.y,b.w,b.h);
+    }
+
+    // Art Safe Area: Kreuzform aus vertikalem + horizontalem Arm
+    {
+      const v=r(SAFE_V), h=r(SAFE_H);
+      ctx.beginPath();
+      ctx.moveTo(v.x,       v.y);
+      ctx.lineTo(v.x+v.w,   v.y);
+      ctx.lineTo(v.x+v.w,   h.y);
+      ctx.lineTo(h.x+h.w,   h.y);
+      ctx.lineTo(h.x+h.w,   h.y+h.h);
+      ctx.lineTo(v.x+v.w,   h.y+h.h);
+      ctx.lineTo(v.x+v.w,   v.y+v.h);
+      ctx.lineTo(v.x,       v.y+v.h);
+      ctx.lineTo(v.x,       h.y+h.h);
+      ctx.lineTo(h.x,       h.y+h.h);
+      ctx.lineTo(h.x,       h.y);
+      ctx.lineTo(v.x,       h.y);
+      ctx.closePath();
+      ctx.fillStyle='rgba(0,210,110,.18)';
+      ctx.strokeStyle='rgba(0,225,125,.95)';
+      ctx.lineWidth=2; ctx.setLineDash([8,6]);
+      ctx.fill(); ctx.stroke();
+      ctx.setLineDash([]);
+      // Fadenkreuz in der Zonenmitte
+      const cx=h.x+h.w/2, cy=v.y+v.h/2;
+      ctx.beginPath();
+      ctx.moveTo(cx-10,cy); ctx.lineTo(cx+10,cy);
+      ctx.moveTo(cx,cy-10); ctx.lineTo(cx,cy+10);
+      ctx.stroke();
+      // Beschriftung
+      ctx.fillStyle='rgba(0,225,125,.95)';
+      ctx.font='600 12px system-ui,sans-serif';
+      ctx.fillText('Art Safe Area', v.x+8, v.y+18);
+    }
+    ctx.restore();
+  }
+}
+
+function renderDevices() {
+  DEVS.forEach(d=>{
+    const el=document.getElementById(d.id);
+    if(!img) return;
+    const fs=Math.max(d.w/CW,d.h/CH);
+    const ww=d.w/fs, wh=d.h/fs;
+    const cropX=(CW-ww)/2-(d.ox||0)*ww, cropY=(CH-wh)/2;
+    const ds=fs*d.s;
+    el.style.left  =((posX-cropX)*ds)+'px';
+    el.style.top   =((posY-cropY)*ds)+'px';
+    el.style.width =(img.naturalWidth *zoom*ds)+'px';
+    el.style.height=(img.naturalHeight*zoom*ds)+'px';
+  });
+}
+
+function render() { renderCanvas(); renderDevices(); }
+
+function clampPos(){
+  if(!img) return;
+  posX=Math.max(CW-img.naturalWidth*zoom, Math.min(0, posX));
+  posY=Math.max(CH-img.naturalHeight*zoom, Math.min(0, posY));
+}
+
+function updateSliders(){
+  if(!img) return;
+  const zPct=Math.round(zoom*100);
+  const zsl=document.getElementById('sl-zoom');
+  zsl.min=Math.round(minZoom*100); zsl.value=zPct;
+  const zin=document.getElementById('zoom-input');
+  zin.min=Math.round(minZoom*100);
+  if(document.activeElement!==zin) zin.value=zPct;
+  const xsl=document.getElementById('sl-x');
+  xsl.min=Math.round(CW-img.naturalWidth*zoom); xsl.max=0; xsl.value=Math.round(posX);
+  document.getElementById('sl-x-val').textContent=Math.round(posX)+' px';
+  const ysl=document.getElementById('sl-y');
+  ysl.min=Math.round(CH-img.naturalHeight*zoom); ysl.max=0; ysl.value=Math.round(posY);
+  document.getElementById('sl-y-val').textContent=Math.round(posY)+' px';
+  try {
+    const [ew,eh]=exportSize();
+    const es=document.getElementById('exp-size');
+    if(es) es.textContent=ew+' × '+eh;
+  } catch(_) {}
+}
+
+function updateText() {
+  const t=document.getElementById('f-title').value;
+  const m=document.getElementById('f-meta').value;
+  const d=document.getElementById('f-desc').value;
+  const b=document.getElementById('f-badge').value;
+  [['td','md','dd','bd'],['tt','mt','dt','bt'],['tw','mw','dw','bw'],['t2','m2','d2','b2']].forEach(([ti,mi,di,bi])=>{
+    document.getElementById(ti).textContent=t;
+    document.getElementById(mi).textContent=m;
+    document.getElementById(di).textContent=d;
+    document.getElementById(bi).textContent=b;
+  });
+  // Smart TV: gleiche Std./Min.-Anzeige wie Web, mit Beschreibung
+  document.getElementById('ttv').textContent=t;
+  document.getElementById('btv').textContent=b;
+  document.getElementById('mtv').textContent=m;
+  document.getElementById('dtv').textContent=d;
+  document.getElementById('ti').textContent=t;
+  document.getElementById('di').textContent=d;
+  document.getElementById('bi').textContent=b;
+}
+
+outer.addEventListener('mousedown',e=>{
+  if(!img) return;
+  e.preventDefault();
+  dragging=true; didDrag=false;
+  dragX0=e.clientX; dragY0=e.clientY; posX0=posX; posY0=posY;
+  outer.classList.add('dragging');
+});
+window.addEventListener('mousemove',e=>{
+  if(!dragging) return;
+  const dx=e.clientX-dragX0, dy=e.clientY-dragY0;
+  if(Math.abs(dx)>3||Math.abs(dy)>3) didDrag=true;
+  posX=posX0+dx/S; posY=posY0+dy/S; clampPos(); updateSliders(); render();
+});
+window.addEventListener('mouseup',e=>{
+  if(!dragging) return;
+  dragging=false; outer.classList.remove('dragging');
+});
+outer.addEventListener('wheel',e=>{
+  if(!img) return; e.preventDefault();
+  const r=canvas.getBoundingClientRect();
+  const mx=(e.clientX-r.left)/S, my=(e.clientY-r.top)/S;
+  const prev=zoom;
+  zoom=Math.max(minZoom,Math.min(10,zoom*(e.deltaY<0?1.05:.95)));
+  posX=mx-(mx-posX)*(zoom/prev); posY=my-(my-posY)*(zoom/prev);
+  clampPos(); updateSliders(); render();
+},{passive:false});
+
+document.getElementById('file-input').addEventListener('change',e=>loadFile(e.target.files[0]));
+// Datei-Drop auf der gesamten Seite akzeptieren
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('drop',e=>{
+  e.preventDefault();
+  if(e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
+});
+
+function loadFile(file){
+  if(!file||!file.type.startsWith('image/')) return;
+  if(imgUrl) URL.revokeObjectURL(imgUrl);
+  imgUrl=URL.createObjectURL(file);
+  const i=new Image();
+  i.onload=()=>{
+    img=i;
+    minZoom=Math.max(CW/i.naturalWidth,CH/i.naturalHeight);
+    zoom=minZoom;
+    posX=(CW-i.naturalWidth*zoom)/2;
+    posY=(CH-i.naturalHeight*zoom)/2;
+    DEVS.forEach(d=>{const el=document.getElementById(d.id);el.src=imgUrl;el.style.display='block';});
+    document.getElementById('desk-grad').style.display='block';
+    document.getElementById('desk-nav').style.display=document.getElementById('show-nav').checked?'block':'none';
+    document.getElementById('desk-text').style.display='block';
+    document.getElementById('drop-hint').style.display='none';
+    document.querySelectorAll('.exp-btn').forEach(b=>b.disabled=false);
+    ['sl-zoom','sl-x','sl-y','zoom-input'].forEach(id=>document.getElementById(id).disabled=false);
+    updateSliders();
+    render();
+  };
+  i.src=imgUrl;
+}
+
+document.getElementById('show-focus').addEventListener('change',()=>renderCanvas());
+document.getElementById('show-nav').addEventListener('change',function(){
+  if(!img) return;
+  document.getElementById('desk-nav').style.display=this.checked?'block':'none';
+});
+document.getElementById('show-tvui').addEventListener('change',function(){
+  document.getElementById('tv-chrome').style.display=this.checked?'block':'none';
+});
+document.getElementById('show-hd').addEventListener('change',function(){
+  document.getElementById('tv-hd').style.display=this.checked?'block':'none';
+});
+
+function applyZoomPct(pct){
+  if(!img) return;
+  const prev=zoom;
+  zoom=Math.max(minZoom,Math.min(10,pct/100));
+  posX=CW/2-(CW/2-posX)*(zoom/prev);
+  posY=CH/2-(CH/2-posY)*(zoom/prev);
+  clampPos(); updateSliders(); render();
+}
+const zoomInput=document.getElementById('zoom-input');
+zoomInput.addEventListener('change',function(){
+  const v=parseFloat(this.value);
+  if(isNaN(v)) { updateSliders(); return; }
+  applyZoomPct(v);
+  this.value=Math.round(zoom*100); // auf gültigen Wert zurückschreiben
+});
+zoomInput.addEventListener('keydown',function(e){
+  if(e.key==='Enter') this.blur();
+});
+document.getElementById('sl-zoom').addEventListener('input',function(){
+  if(!img) return;
+  const prev=zoom;
+  zoom=Math.max(minZoom,Math.min(10,+this.value/100));
+  // Zoom toward canvas center
+  posX=CW/2-(CW/2-posX)*(zoom/prev);
+  posY=CH/2-(CH/2-posY)*(zoom/prev);
+  clampPos(); updateSliders(); render();
+});
+document.getElementById('sl-x').addEventListener('input',function(){
+  if(!img) return;
+  posX=+this.value; clampPos(); updateSliders(); render();
+});
+document.getElementById('sl-y').addEventListener('input',function(){
+  if(!img) return;
+  posY=+this.value; clampPos(); updateSliders(); render();
+});
+
+function exportSize(){
+  // Sichtbarer 16:9-Ausschnitt (UBA) in Original-Bildpixeln, mind. 3840 × 2160
+  const ow=Math.max(CW, Math.round(CW/zoom));
+  return [ow, Math.round(ow*CH/CW)];
+}
+
+// Schreibt die 300-ppi-Dichte in den JFIF-Header eines canvas.toDataURL('image/jpeg')-Strings.
+// Betrifft nur die eingebetteten Metadaten, nicht die Pixelauflösung.
+function setJpegDpi(dataUrl, dpi){
+  try{
+    const comma=dataUrl.indexOf(',');
+    const meta=dataUrl.slice(0,comma), b64=dataUrl.slice(comma+1);
+    const bin=atob(b64);
+    const bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    // JFIF-APP0-Segment muss direkt auf SOI folgen: FFD8 FFE0 .. "JFIF\0"
+    if(bytes[2]===0xFF && bytes[3]===0xE0 &&
+       bytes[6]===0x4A && bytes[7]===0x46 && bytes[8]===0x49 && bytes[9]===0x46 && bytes[10]===0x00){
+      bytes[13]=1; // Einheit: Pixel pro Zoll
+      bytes[14]=(dpi>>8)&0xFF; bytes[15]=dpi&0xFF;
+      bytes[16]=(dpi>>8)&0xFF; bytes[17]=dpi&0xFF;
+    }
+    let out='';
+    for(let i=0;i<bytes.length;i++) out+=String.fromCharCode(bytes[i]);
+    return meta+','+btoa(out);
+  }catch(_){ return dataUrl; }
+}
+
+function exportHero(){
+  if(!img) return;
+  const sx=-posX/zoom, sy=-posY/zoom, sw=CW/zoom, sh=CH/zoom;
+  const MAX_BYTES=20*1024*1024; // 20 MB (Spec: 3–12 MB ideal, 20 MB max)
+  const PREFIX='data:image/jpeg;base64,'.length;
+  let [ow,oh]=exportSize();
+  let dataUrl=null, finalBytes=0;
+
+  // Qualität schrittweise senken; reicht das nicht, Auflösung reduzieren (nie unter 3840 × 2160)
+  outer:
+  while(true){
+    const out=document.createElement('canvas'); out.width=ow; out.height=oh;
+    const c=out.getContext('2d');
+    c.fillStyle='#000'; c.fillRect(0,0,ow,oh);
+    c.imageSmoothingQuality='high';
+    c.drawImage(img, sx, sy, sw, sh, 0, 0, ow, oh);
+    for(let q=0.92; q>=0.5; q-=0.07){
+      dataUrl=out.toDataURL('image/jpeg',q);
+      finalBytes=Math.ceil((dataUrl.length-PREFIX)*3/4);
+      if(finalBytes<=MAX_BYTES) break outer;
+    }
+    if(ow<=CW) break; // Minimum erreicht → letzten Versuch (q=0.5) verwenden
+    ow=Math.max(CW, Math.round(ow*0.85));
+    oh=Math.round(ow*CH/CW);
+  }
+
+  dataUrl=setJpegDpi(dataUrl, 300);
+  updateExportGauge(finalBytes, MAX_BYTES);
+
+  const title=document.getElementById('f-title').value
+    .trim().replace(/[\\/:*?"<>|]/g,'').replace(/\s+/g,'_')||'Hero';
+  const a=document.createElement('a');
+  a.download=title+'_ServusTVON.jpg';
+  a.href=dataUrl;
+  a.click();
+}
+
+function updateExportGauge(bytes, maxBytes){
+  const fill=document.getElementById('exp-gauge-fill');
+  const label=document.getElementById('exp-gauge-label');
+  if(!fill||!label) return;
+  const mb=bytes/1024/1024;
+  const pct=Math.max(4,Math.min(100,Math.round(bytes/maxBytes*100)));
+  fill.style.width=pct+'%';
+  fill.style.background = mb<=12 ? 'var(--lt-safe)' : (mb<=20 ? 'var(--lt-warn)' : 'var(--lt-crop)');
+  label.textContent=mb.toFixed(1)+' MB / '+Math.round(maxBytes/1024/1024)+' MB max';
+}
+
+/* ── Device-Lightbox: Klick auf eine Vorschau vergrößert sie an Ort und Stelle
+   (die Original-Elemente werden in den Overlay-Container umgehängt, damit
+   renderDevices()/updateText() unverändert weiterarbeiten). ── */
+function openDeviceLightbox(el, evt){
+  if(evt && evt.target.closest('input,label,.toggles')) return; // Toggles bleiben klickbar
+  const backdrop=document.getElementById('device-lightbox');
+  const holder=document.getElementById('device-lightbox-content');
+  const tag=document.getElementById('device-lightbox-tag');
+  el._ltOrigParent=el.parentNode;
+  el._ltOrigNext=el.nextSibling;
+  holder.appendChild(el);
+  el.classList.add('expanded');
+  tag.textContent=el.dataset.name||'';
+  backdrop.classList.add('open');
+  document.addEventListener('keydown', onLightboxKeydown);
+
+  requestAnimationFrame(()=>{
+    const rect=el.getBoundingClientRect();
+    const targetW=Math.min(window.innerWidth*0.82, 980);
+    const targetH=window.innerHeight*0.82;
+    const naturalW=rect.width, naturalH=rect.height;
+    let scale=Math.min(targetW/naturalW, targetH/naturalH);
+    scale=Math.max(1, Math.min(scale, 4));
+    el.style.transform='scale('+scale.toFixed(3)+')';
+  });
+}
+function closeDeviceLightbox(){
+  const backdrop=document.getElementById('device-lightbox');
+  const holder=document.getElementById('device-lightbox-content');
+  const el=holder.firstElementChild;
+  if(el){
+    el.classList.remove('expanded');
+    el.style.transform='';
+    if(el._ltOrigNext) el._ltOrigParent.insertBefore(el, el._ltOrigNext);
+    else if(el._ltOrigParent) el._ltOrigParent.appendChild(el);
+  }
+  backdrop.classList.remove('open');
+  document.removeEventListener('keydown', onLightboxKeydown);
+}
+function onLightboxKeydown(e){
+  if(e.key==='Escape') closeDeviceLightbox();
+}
+
+renderCanvas();
+updateText();
+const _desc=document.getElementById('f-desc');
+document.getElementById('desc-count').textContent=_desc.value.length+' / 500';
+</script>
+</body>
+</html>
