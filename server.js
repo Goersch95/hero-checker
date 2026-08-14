@@ -114,7 +114,7 @@ async function handleExpand(req, res) {
         headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: EXPAND_PROMPT }, { inlineData: { mimeType, data: base64Data } }] }],
-          generationConfig: { responseModalities: ['IMAGE'] },
+          generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
         }),
       }
     );
@@ -137,12 +137,20 @@ async function handleExpand(req, res) {
   }
 
   const data = await geminiRes.json().catch(() => null);
-  const parts = data && data.candidates && data.candidates[0] && data.candidates[0].content
-    && data.candidates[0].content.parts || [];
+  const candidate = data && data.candidates && data.candidates[0];
+  const parts = (candidate && candidate.content && candidate.content.parts) || [];
   const imgPart = parts.find(p => p.inlineData && p.inlineData.data);
   if (!imgPart) {
     console.error('Gemini-Antwort enthielt kein Bild:', JSON.stringify(data).slice(0, 500));
-    return res.status(502).json({ error: 'provider_error', message: 'Kein Bild in der Antwort erhalten.' });
+    const textPart = parts.find(p => typeof p.text === 'string');
+    const reasonBits = [
+      candidate && candidate.finishReason ? `finishReason: ${candidate.finishReason}` : null,
+      textPart ? `Modell-Antwort: "${textPart.text.slice(0, 200)}"` : null,
+    ].filter(Boolean);
+    return res.status(502).json({
+      error: 'provider_error',
+      message: 'Kein Bild in der Antwort erhalten.' + (reasonBits.length ? ' (' + reasonBits.join(', ') + ')' : ''),
+    });
   }
 
   // Erst JETZT, nach bestätigtem Erfolg, gegen das Budget verbuchen.
