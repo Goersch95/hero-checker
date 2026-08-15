@@ -1422,7 +1422,14 @@ async function generateExpand(){
   setTimeout(()=>{
     const newImg=new Image();
     newImg.onload=()=>{
-      img=newImg; posX=0; posY=0; zoom=1;
+      img=newImg;
+      // Nicht auf CW×CH annehmen: die Mock-Füllung ist immer exakt canvasgroß, ein
+      // echtes Gemini-Ergebnis liefert aber seine eigene Ausgabeauflösung (bei 16:9
+      // z.B. deutlich kleiner als 3840×2160) - also wie bei einem frischen Bild-Upload
+      // einpassen statt fixe 100%/0,0 anzunehmen.
+      zoom=Math.max(CW/newImg.naturalWidth, CH/newImg.naturalHeight);
+      posX=(CW-newImg.naturalWidth*zoom)/2;
+      posY=(CH-newImg.naturalHeight*zoom)/2;
       render();
       btn.classList.remove('is-loading');
       btn.hidden=true;
@@ -1433,7 +1440,9 @@ async function generateExpand(){
 }
 
 function acceptExpand(){
-  minZoom=1; // das erweiterte Bild deckt die 3840×2160 jetzt exakt ab
+  // Aus der tatsächlichen Auflösung des Ergebnisses berechnen, nicht auf CW×CH annehmen
+  // (siehe generateExpand: bei echter KI-Generierung meist ungleich 3840×2160).
+  minZoom=Math.max(CW/img.naturalWidth, CH/img.naturalHeight);
   expandBeforeState=null;
   document.getElementById('expand-mode').checked=false;
   expandMode=false;
