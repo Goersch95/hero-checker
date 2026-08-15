@@ -1343,8 +1343,21 @@ function buildMockExpandCanvas(){
   c.filter='blur(56px)';
   c.drawImage(img, (CW-cw)/2, (CH-ch)/2, cw, ch);
   c.restore();
-  // scharfes Original obendrauf, an der vom Nutzer gewählten Position/Größe
-  c.drawImage(img, posX, posY, iw, ih);
+  // Scharfes Original obendrauf, mit weich ausgeblendeten Kanten statt einer harten
+  // Kante - sonst hat Gemini im Seed-Bild nichts zum Verschmelzen und übernimmt eher
+  // den harten Schnitt, statt einen fließenden Übergang zu erzeugen.
+  const sw=Math.max(1,Math.round(iw)), sh=Math.max(1,Math.round(ih));
+  const sharp=document.createElement('canvas'); sharp.width=sw; sharp.height=sh;
+  const sc=sharp.getContext('2d');
+  sc.drawImage(img, 0, 0, sw, sh);
+  const feather=Math.min(Math.round(CW*0.035), Math.floor(Math.min(sw,sh)/2)-1);
+  if(feather>3){
+    sc.globalCompositeOperation='destination-in';
+    sc.filter=`blur(${feather}px)`;
+    sc.fillStyle='#fff';
+    sc.fillRect(feather, feather, sw-feather*2, sh-feather*2);
+  }
+  c.drawImage(sharp, posX, posY);
   // JPEG statt PNG: als Seed-Bild für den Gemini-Call gesendet, dessen Inline-Daten-Limit
   // bei 7 MB liegt - ein 3840×2160-PNG landet dort schnell drüber (unkomprimiert ~5-7 MB).
   return out.toDataURL('image/jpeg', 0.9);

@@ -62,10 +62,11 @@ app.get('/qa/api/expand-budget', requireAuth, (req, res) => {
 const GEMINI_API_BASE = process.env.GEMINI_API_BASE_URL || 'https://generativelanguage.googleapis.com';
 const GEMINI_MODEL = process.env.GEMINI_EXPAND_MODEL || 'gemini-2.5-flash-image';
 const EXPAND_PROMPT = 'Extend this image beyond its original borders using outpainting. The sharp, '
-  + 'in-focus area in the middle is the original photo - keep its subject and composition completely '
-  + 'intact and unchanged. The blurred area around it is a rough placeholder showing roughly where the '
-  + 'scene continues; replace ONLY that blurred area with new, photorealistic, high-resolution, '
-  + 'seamlessly integrated content that matches the style, colors, lighting and perspective of the '
+  + 'in-focus area in the middle is the original photo - keep its subject and composition intact. It '
+  + 'already fades softly into a blurred placeholder near its edges; treat that soft edge as the blend '
+  + 'zone and paint through it smoothly, so there is NO visible seam, edge, or hard boundary anywhere in '
+  + 'the final result. Replace the blurred area with new, photorealistic, high-resolution content that '
+  + 'continues the scene naturally, matching the style, colors, lighting, grain and perspective of the '
   + 'original photo exactly, as if the camera had simply captured a wider shot. Do not add any text, '
   + 'logos, watermarks, or new people. 16:9 landscape output.';
 
