@@ -109,11 +109,13 @@ async function handleExpand(req, res) {
 
   // IMAGE_OTHER ist laut Google und mehreren Entwickler-Threads ein generischer,
   // dokumentiert unzuverlässiger Fehler bei Bildbearbeitungs-Prompts - derselbe Request
-  // schlägt mal fehl, mal nicht. Empfohlene Abhilfe ist ein Retry, deshalb hier bis zu
-  // 2 zusätzliche Versuche, BEVOR das an den Client zurückgemeldet wird.
-  const MAX_ATTEMPTS = 3;
+  // schlägt mal fehl, mal nicht (in Foren berichtete Fehlerraten von bis zu ~75% für
+  // ähnliche Bearbeiten-Aufgaben). Deshalb mehrere Versuche mit kurzer Pause dazwischen,
+  // BEVOR das an den Client zurückgemeldet wird.
+  const MAX_ATTEMPTS = 4;
   let lastFailure = null;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    if (attempt > 1) await new Promise(r => setTimeout(r, 600 * (attempt - 1)));
     let geminiRes;
     try {
       geminiRes = await fetch(
@@ -154,10 +156,14 @@ async function handleExpand(req, res) {
     const parts = (candidate && candidate.content && candidate.content.parts) || [];
     const imgPart = parts.find(p => p.inlineData && p.inlineData.data);
     if (!imgPart) {
-      console.error(`Gemini-Antwort enthielt kein Bild (Versuch ${attempt}/${MAX_ATTEMPTS}):`, JSON.stringify(data).slice(0, 500));
+      console.error(`Gemini-Antwort enthielt kein Bild (Versuch ${attempt}/${MAX_ATTEMPTS}):`, JSON.stringify(data).slice(0, 800));
       const textPart = parts.find(p => typeof p.text === 'string');
+      const safety = (candidate && candidate.safetyRatings) || (data && data.promptFeedback && data.promptFeedback.safetyRatings);
+      const flagged = Array.isArray(safety) ? safety.filter(s => s.probability && s.probability !== 'NEGLIGIBLE') : [];
       const reasonBits = [
         candidate && candidate.finishReason ? `finishReason: ${candidate.finishReason}` : null,
+        data && data.promptFeedback && data.promptFeedback.blockReason ? `blockReason: ${data.promptFeedback.blockReason}` : null,
+        flagged.length ? `Safety: ${flagged.map(s => `${s.category}=${s.probability}`).join(', ')}` : null,
         textPart ? `Modell-Antwort: "${textPart.text.slice(0, 200)}"` : null,
       ].filter(Boolean);
       lastFailure = {
