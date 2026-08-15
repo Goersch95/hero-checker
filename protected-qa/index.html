@@ -1214,6 +1214,14 @@ function renderCanvas() {
   }
 }
 
+// Die Device-Preview-Kacheln sind eigene <img>-Elemente, deren src nicht automatisch
+// mit der js-seitigen `img`-Variable mitgeht - renderDevices() passt nur Position/Größe
+// an. Muss darum explizit bei jedem Bildwechsel (Upload, Accept, Discard) mit aufgerufen
+// werden, sonst zeigen die Kacheln weiter das alte Bild.
+function syncDeviceTileSrc(url){
+  DEVS.forEach(d=>{ document.getElementById(d.id).src=url; });
+}
+
 function renderDevices() {
   DEVS.forEach(d=>{
     const el=document.getElementById(d.id);
@@ -1443,6 +1451,7 @@ async function generateExpand(){
       zoom=Math.max(CW/newImg.naturalWidth, CH/newImg.naturalHeight);
       posX=(CW-newImg.naturalWidth*zoom)/2;
       posY=(CH-newImg.naturalHeight*zoom)/2;
+      syncDeviceTileSrc(newImg.src);
       render();
       btn.classList.remove('is-loading');
       btn.hidden=true;
@@ -1469,6 +1478,7 @@ function acceptExpand(){
 function discardExpand(){
   if(expandBeforeState){
     img=expandBeforeState.img; posX=expandBeforeState.posX; posY=expandBeforeState.posY; zoom=expandBeforeState.zoom;
+    syncDeviceTileSrc(img.src);
   }
   expandBeforeState=null;
   document.getElementById('expand-result-actions').hidden=true;
@@ -1579,7 +1589,8 @@ function loadFile(file){
     zoom=minZoom;
     posX=(CW-i.naturalWidth*zoom)/2;
     posY=(CH-i.naturalHeight*zoom)/2;
-    DEVS.forEach(d=>{const el=document.getElementById(d.id);el.src=imgUrl;el.style.display='block';});
+    syncDeviceTileSrc(imgUrl);
+    DEVS.forEach(d=>{document.getElementById(d.id).style.display='block';});
     document.getElementById('desk-grad').style.display='block';
     document.getElementById('desk-nav').style.display=document.getElementById('show-nav').checked?'block':'none';
     document.getElementById('desk-text').style.display='block';
