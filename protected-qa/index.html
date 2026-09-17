@@ -75,6 +75,13 @@ header .spec-chips span {
 }
 #canvas-outer.dragging { cursor:grabbing; }
 #main-canvas { display:block; position:absolute; top:0; left:0; }
+#reality-outer {
+  position:relative; width:960px; height:540px;
+  border:1px solid var(--lt-line); border-radius:14px; overflow:hidden;
+  background:repeating-conic-gradient(#1a1a1a 0% 25%,#222 0% 50%) 0 0/20px 20px;
+  box-shadow:0 18px 40px -24px rgba(27,24,17,.35);
+}
+#reality-canvas { display:block; }
 .desk-layer { position:absolute; inset:0; pointer-events:none; display:none; }
 #drop-hint {
   position:absolute; inset:0; display:flex; flex-direction:column;
@@ -670,6 +677,20 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
       </div>
     </div>
 
+    <!-- Realitäts-Vorschau: simuliert den bestätigten Plattform-Zwischenschritt
+         (Cloudinary crop_mode=fill, 16:9 → 3:2 center-crop, danach object-fit:cover
+         zurück auf 16:9) - mathematisch identisch zu einem auf Canvas-Mitte
+         zentrierten Zoom um Faktor 32/27 (≈+18,5%), siehe PLATFORM_CROP_SCALE. -->
+    <div>
+      <div class="preview-label">
+        <span>So sieht es wirklich aus <span style="color:#444;font-weight:400">Plattform-Crop 3:2 → 16:9</span></span>
+      </div>
+      <div id="reality-outer">
+        <canvas id="reality-canvas" width="960" height="540"></canvas>
+      </div>
+      <div class="canvas-hint">Simuliert den bestätigten Cloudinary-Zwischenschritt: dein 16:9-Ausschnitt wird auf 3:2 mittig zugeschnitten und danach wieder auf 16:9 gestreckt – so kommt er auf der Plattform tatsächlich an. Der Export bleibt trotzdem 16:9.</div>
+    </div>
+
     <!-- Export: groß, direkt unter dem Cropping-Ausschnitt -->
     <div class="export-bar">
       <div class="export-bar-info">
@@ -1147,6 +1168,75 @@ let dragging=false, didDrag=false, dragX0, dragY0, posX0, posY0;
 const canvas=document.getElementById('main-canvas');
 const ctx=canvas.getContext('2d');
 const outer=document.getElementById('canvas-outer');
+const realityCanvas=document.getElementById('reality-canvas');
+const realityCtx=realityCanvas.getContext('2d');
+const realityOuter=document.getElementById('reality-outer');
+
+// Bestätigter Plattform-Zwischenschritt (Cloudinary): 16:9 wird mittig auf 3:2
+// zugeschnitten, danach per object-fit:cover wieder auf 16:9 zurückgestreckt.
+// Beide Schritte zusammen sind mathematisch identisch zu einem auf die Canvas-
+// Mitte zentrierten Zoom um 32/27 (≈+18,5%) - 3:2-Breite/16:9-Breite bei
+// gleicher Höhe ist genau 27/32 (=0,84375), unabhängig von der Quellauflösung.
+const PLATFORM_CROP_SCALE = 27/32;
+
+function drawSafeZones(targetCtx, s){
+  targetCtx.save();
+  const r=z=>({x:z.x*s,y:z.y*s,w:z.w*s,h:z.h*s});
+
+  // Crop-Zone: oben/unten immer kappungsgefährdet
+  targetCtx.fillStyle='rgba(255,60,60,.16)';
+  targetCtx.strokeStyle='rgba(255,60,60,.85)';
+  targetCtx.lineWidth=1.5;
+  [CROP_TOP,CROP_BOTTOM].forEach(z=>{
+    const b=r(z);
+    targetCtx.fillRect(b.x,b.y,b.w,b.h);
+    targetCtx.strokeRect(b.x,b.y,b.w,b.h);
+  });
+
+  // UI-Bereich: von der Plattform reserviert (Buttons/Text)
+  {
+    const b=r(UI_AREA);
+    targetCtx.fillStyle='rgba(255,150,0,.16)';
+    targetCtx.strokeStyle='rgba(255,150,0,.85)';
+    targetCtx.fillRect(b.x,b.y,b.w,b.h);
+    targetCtx.strokeRect(b.x,b.y,b.w,b.h);
+  }
+
+  // Art Safe Area: Kreuzform aus vertikalem + horizontalem Arm
+  {
+    const v=r(SAFE_V), h=r(SAFE_H);
+    targetCtx.beginPath();
+    targetCtx.moveTo(v.x,       v.y);
+    targetCtx.lineTo(v.x+v.w,   v.y);
+    targetCtx.lineTo(v.x+v.w,   h.y);
+    targetCtx.lineTo(h.x+h.w,   h.y);
+    targetCtx.lineTo(h.x+h.w,   h.y+h.h);
+    targetCtx.lineTo(v.x+v.w,   h.y+h.h);
+    targetCtx.lineTo(v.x+v.w,   v.y+v.h);
+    targetCtx.lineTo(v.x,       v.y+v.h);
+    targetCtx.lineTo(v.x,       h.y+h.h);
+    targetCtx.lineTo(h.x,       h.y+h.h);
+    targetCtx.lineTo(h.x,       h.y);
+    targetCtx.lineTo(v.x,       h.y);
+    targetCtx.closePath();
+    targetCtx.fillStyle='rgba(0,210,110,.18)';
+    targetCtx.strokeStyle='rgba(0,225,125,.95)';
+    targetCtx.lineWidth=2; targetCtx.setLineDash([8,6]);
+    targetCtx.fill(); targetCtx.stroke();
+    targetCtx.setLineDash([]);
+    // Fadenkreuz in der Zonenmitte
+    const cx=h.x+h.w/2, cy=v.y+v.h/2;
+    targetCtx.beginPath();
+    targetCtx.moveTo(cx-10,cy); targetCtx.lineTo(cx+10,cy);
+    targetCtx.moveTo(cx,cy-10); targetCtx.lineTo(cx,cy+10);
+    targetCtx.stroke();
+    // Beschriftung
+    targetCtx.fillStyle='rgba(0,225,125,.95)';
+    targetCtx.font='600 12px system-ui,sans-serif';
+    targetCtx.fillText('Art Safe Area', v.x+8, v.y+18);
+  }
+  targetCtx.restore();
+}
 
 function renderCanvas() {
   ctx.clearRect(0,0,CW*S,CH*S);
@@ -1154,64 +1244,24 @@ function renderCanvas() {
   if(img) ctx.drawImage(img,posX*S,posY*S,img.naturalWidth*zoom*S,img.naturalHeight*zoom*S);
   drawExpandOverlay();
   const sf=document.getElementById('show-focus');
-  if(sf&&sf.checked){
-    ctx.save();
-    const r=z=>({x:z.x*S,y:z.y*S,w:z.w*S,h:z.h*S});
+  if(sf&&sf.checked) drawSafeZones(ctx, S);
+}
 
-    // Crop-Zone: oben/unten immer kappungsgefährdet
-    ctx.fillStyle='rgba(255,60,60,.16)';
-    ctx.strokeStyle='rgba(255,60,60,.85)';
-    ctx.lineWidth=1.5;
-    [CROP_TOP,CROP_BOTTOM].forEach(z=>{
-      const b=r(z);
-      ctx.fillRect(b.x,b.y,b.w,b.h);
-      ctx.strokeRect(b.x,b.y,b.w,b.h);
-    });
-
-    // UI-Bereich: von der Plattform reserviert (Buttons/Text)
-    {
-      const b=r(UI_AREA);
-      ctx.fillStyle='rgba(255,150,0,.16)';
-      ctx.strokeStyle='rgba(255,150,0,.85)';
-      ctx.fillRect(b.x,b.y,b.w,b.h);
-      ctx.strokeRect(b.x,b.y,b.w,b.h);
-    }
-
-    // Art Safe Area: Kreuzform aus vertikalem + horizontalem Arm
-    {
-      const v=r(SAFE_V), h=r(SAFE_H);
-      ctx.beginPath();
-      ctx.moveTo(v.x,       v.y);
-      ctx.lineTo(v.x+v.w,   v.y);
-      ctx.lineTo(v.x+v.w,   h.y);
-      ctx.lineTo(h.x+h.w,   h.y);
-      ctx.lineTo(h.x+h.w,   h.y+h.h);
-      ctx.lineTo(v.x+v.w,   h.y+h.h);
-      ctx.lineTo(v.x+v.w,   v.y+v.h);
-      ctx.lineTo(v.x,       v.y+v.h);
-      ctx.lineTo(v.x,       h.y+h.h);
-      ctx.lineTo(h.x,       h.y+h.h);
-      ctx.lineTo(h.x,       h.y);
-      ctx.lineTo(v.x,       h.y);
-      ctx.closePath();
-      ctx.fillStyle='rgba(0,210,110,.18)';
-      ctx.strokeStyle='rgba(0,225,125,.95)';
-      ctx.lineWidth=2; ctx.setLineDash([8,6]);
-      ctx.fill(); ctx.stroke();
-      ctx.setLineDash([]);
-      // Fadenkreuz in der Zonenmitte
-      const cx=h.x+h.w/2, cy=v.y+v.h/2;
-      ctx.beginPath();
-      ctx.moveTo(cx-10,cy); ctx.lineTo(cx+10,cy);
-      ctx.moveTo(cx,cy-10); ctx.lineTo(cx,cy+10);
-      ctx.stroke();
-      // Beschriftung
-      ctx.fillStyle='rgba(0,225,125,.95)';
-      ctx.font='600 12px system-ui,sans-serif';
-      ctx.fillText('Art Safe Area', v.x+8, v.y+18);
-    }
-    ctx.restore();
+function renderReality() {
+  if(!realityCtx) return;
+  realityCtx.clearRect(0,0,CW*S,CH*S);
+  realityCtx.fillStyle='#1a1a1a'; realityCtx.fillRect(0,0,CW*S,CH*S);
+  if(img){
+    // Zoom/Position um die Canvas-Mitte skalieren (Cloudinary croppt/streckt
+    // immer mittig, "Gravity center" - unabhängig davon, wie der Nutzer
+    // selbst innerhalb des 16:9-Rahmens positioniert hat).
+    const rz = zoom / PLATFORM_CROP_SCALE;
+    const rx = CW/2 - (CW/2 - posX) / PLATFORM_CROP_SCALE;
+    const ry = CH/2 - (CH/2 - posY) / PLATFORM_CROP_SCALE;
+    realityCtx.drawImage(img, rx*S, ry*S, img.naturalWidth*rz*S, img.naturalHeight*rz*S);
   }
+  const sf=document.getElementById('show-focus');
+  if(sf&&sf.checked) drawSafeZones(realityCtx, S);
 }
 
 // Die Device-Preview-Kacheln sind eigene <img>-Elemente, deren src nicht automatisch
@@ -1237,7 +1287,7 @@ function renderDevices() {
   });
 }
 
-function render() { renderCanvas(); renderDevices(); }
+function render() { renderCanvas(); renderReality(); renderDevices(); }
 
 function clampPos(){
   if(!img) return;
@@ -1603,7 +1653,7 @@ function loadFile(file){
   i.src=imgUrl;
 }
 
-document.getElementById('show-focus').addEventListener('change',()=>renderCanvas());
+document.getElementById('show-focus').addEventListener('change',()=>{renderCanvas();renderReality();});
 document.getElementById('show-nav').addEventListener('change',function(){
   if(!img) return;
   document.getElementById('desk-nav').style.display=this.checked?'block':'none';
@@ -1834,6 +1884,8 @@ function resizeStage(){
   canvasCol.style.width=w+'px';
   canvas.width=w; canvas.height=h;
   outer.style.width=w+'px'; outer.style.height=h+'px';
+  realityCanvas.width=w; realityCanvas.height=h;
+  realityOuter.style.width=w+'px'; realityOuter.style.height=h+'px';
 
   const overlayScale=w/1920;
   if(deskNavInner) deskNavInner.style.transform='scale('+overlayScale+')';
