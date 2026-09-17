@@ -539,7 +539,7 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
     <span class="mark">on</span>
     <div>
       <h1>STV On · Hero Checker</h1>
-      <div class="sub">Universal Base Asset &middot; QA-Umgebung, nicht produktiv</div>
+      <div class="sub">Universal Base Asset</div>
     </div>
   </div>
   <div class="spec-chips">
@@ -555,7 +555,7 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
     <!-- Desktop -->
     <div>
       <div class="preview-label">
-        <span>Universal Base Asset <span style="color:#444;font-weight:400">3840 × 2160</span></span>
+        <span>Universal Base Asset <span style="color:#444;font-weight:400">Plattform-Crop 3:2 → 16:9 · Export bleibt 3840 × 2160</span></span>
         <div class="toggles">
           <label><input type="checkbox" id="show-nav" checked> Navigation</label>
           <label><input type="checkbox" id="show-focus" checked> Sicherheitszonen</label>
@@ -629,8 +629,8 @@ table.zinfo td:first-child { width:96px; font-weight:600; color:var(--lt-ink-dim
           <div style="color:#555;font-size:12px">oder Button rechts verwenden</div>
         </div>
       </div>
-      <div class="ruler"><span>0</span><span>960</span><span>1920 (Mitte)</span><span>2880</span><span>3840</span></div>
-      <div class="canvas-hint">Ziehen: Bild verschieben · Scrollrad: Zoom · Crops immer mittig (c_fill)</div>
+      <div class="ruler"><span>300</span><span>1110</span><span>1920 (Mitte)</span><span>2730</span><span>3540</span></div>
+      <div class="canvas-hint">Ziehen: Bild verschieben · Scrollrad: Zoom · Crops immer mittig (c_fill) · Ansicht zeigt bereits den Plattform-Crop 3:2 → 16:9, Export bleibt volles 16:9</div>
       <div class="zone-legend">
         <span><i style="background:#C6294B"></i>Crop-Zone · 270&nbsp;px oben/unten</span>
         <span><i style="background:#158A55"></i>Art Safe Area</span>
@@ -1092,10 +1092,31 @@ const canvas=document.getElementById('main-canvas');
 const ctx=canvas.getContext('2d');
 const outer=document.getElementById('canvas-outer');
 
+// Bestätigter Plattform-Zwischenschritt (Cloudinary): 16:9 wird mittig auf 3:2
+// zugeschnitten, danach per object-fit:cover wieder auf 16:9 zurückgestreckt.
+// Beide Schritte zusammen sind mathematisch identisch zu einem auf die Canvas-
+// Mitte zentrierten Zoom um 32/27 (≈+18,5%) - 3:2-Breite/16:9-Breite bei
+// gleicher Höhe ist genau 27/32 (=0,84375), unabhängig von der Quellauflösung.
+// Die Canvas zeigt darum direkt dieses Ergebnis (nicht den rohen 16:9-
+// Ausschnitt); posX/posY/zoom bleiben aber die ROHEN, exportierten Werte -
+// Rendering UND Maus-Interaktion rechnen bei jedem Zugriff auf S durch
+// PLATFORM_CROP_SCALE um, sonst laufen Cursor und Bildinhalt auseinander.
+const PLATFORM_CROP_SCALE = 27/32;
+function platformTransform(){
+  return {
+    rz: zoom / PLATFORM_CROP_SCALE,
+    rx: CW/2 - (CW/2 - posX) / PLATFORM_CROP_SCALE,
+    ry: CH/2 - (CH/2 - posY) / PLATFORM_CROP_SCALE,
+  };
+}
+
 function renderCanvas() {
   ctx.clearRect(0,0,CW*S,CH*S);
   ctx.fillStyle='#1a1a1a'; ctx.fillRect(0,0,CW*S,CH*S);
-  if(img) ctx.drawImage(img,posX*S,posY*S,img.naturalWidth*zoom*S,img.naturalHeight*zoom*S);
+  if(img){
+    const {rz,rx,ry}=platformTransform();
+    ctx.drawImage(img, rx*S, ry*S, img.naturalWidth*rz*S, img.naturalHeight*rz*S);
+  }
   const sf=document.getElementById('show-focus');
   if(sf&&sf.checked){
     ctx.save();
@@ -1249,7 +1270,10 @@ window.addEventListener('mousemove',e=>{
   if(!dragging) return;
   const dx=e.clientX-dragX0, dy=e.clientY-dragY0;
   if(Math.abs(dx)>3||Math.abs(dy)>3) didDrag=true;
-  posX=posX0+dx/S; posY=posY0+dy/S; clampPos(); updateSliders(); render();
+  // Bild wird sichtbar um PLATFORM_CROP_SCALE herangezoomt gezeigt (siehe
+  // platformTransform) - ein Bildschirm-Pixel Mausbewegung entspricht darum
+  // weniger als 1/S rohen Canvas-Pixeln, sonst würde der Cursor "vorauslaufen".
+  posX=posX0+dx*PLATFORM_CROP_SCALE/S; posY=posY0+dy*PLATFORM_CROP_SCALE/S; clampPos(); updateSliders(); render();
 });
 window.addEventListener('mouseup',e=>{
   if(!dragging) return;
@@ -1258,7 +1282,10 @@ window.addEventListener('mouseup',e=>{
 outer.addEventListener('wheel',e=>{
   if(!img) return; e.preventDefault();
   const r=canvas.getBoundingClientRect();
-  const mx=(e.clientX-r.left)/S, my=(e.clientY-r.top)/S;
+  // Maus-Bildschirmposition zurück in rohe Canvas-Koordinaten umrechnen -
+  // Umkehrung von platformTransform (zentriert auf CW/2, CH/2, nicht auf 0,0).
+  const mx=CW/2+((e.clientX-r.left)-CW*S/2)*PLATFORM_CROP_SCALE/S;
+  const my=CH/2+((e.clientY-r.top )-CH*S/2)*PLATFORM_CROP_SCALE/S;
   const prev=zoom;
   zoom=Math.max(minZoom,Math.min(10,zoom*(e.deltaY<0?1.05:.95)));
   posX=mx-(mx-posX)*(zoom/prev); posY=my-(my-posY)*(zoom/prev);
@@ -1279,7 +1306,7 @@ outer.addEventListener('touchmove',e=>{
   const t=e.touches[0];
   const dx=t.clientX-dragX0, dy=t.clientY-dragY0;
   if(Math.abs(dx)>3||Math.abs(dy)>3) didDrag=true;
-  posX=posX0+dx/S; posY=posY0+dy/S; clampPos(); updateSliders(); render();
+  posX=posX0+dx*PLATFORM_CROP_SCALE/S; posY=posY0+dy*PLATFORM_CROP_SCALE/S; clampPos(); updateSliders(); render();
 },{passive:false});
 outer.addEventListener('touchend',()=>{
   dragging=false; outer.classList.remove('dragging');
