@@ -1076,11 +1076,14 @@ const UI_AREA      = {x:1113, y:1600, w:1613, h:290};  // von der Plattform rese
 
 // ox = horizontaler Ausschnitt-Versatz als Anteil der Viewport-Breite
 // (positiv = Bild wandert in der Vorschau nach rechts, passend zur realen Ausspielung)
+// dzoom/oy: aus echten Device-Screenshots vermessen (Cap-Logo, Pupille, Wagen-Rad-
+// Landmarken gegen das Originalbild abgeglichen) - siehe Commit-Message für Details.
+// Tablet und Wide Hero: kein Referenz-Screenshot vorhanden, unverändert gelassen.
 const DEVS=[
-  {w:1920,h:1080,id:'tv-bg',  s:.5,ox:0,   color:'rgba(255,100,50,.8)', label:'1920×1080'},
+  {w:1920,h:1080,id:'tv-bg',  s:.5,ox:-.064,oy:.033,dzoom:1.212,color:'rgba(255,100,50,.8)', label:'1920×1080'},
   {w:768, h:500, id:'tab-bg', s:.5,ox:0,   color:'rgba(0,200,255,.8)',  label:'768×500'},
-  {w:430, h:670, id:'wmob-bg',s:.5,ox:.04, color:'rgba(200,100,255,.8)',label:'430×670'},
-  {w:440, h:740, id:'mob-bg', s:.5,ox:.04, color:'rgba(255,150,60,.8)', label:'440×740'},
+  {w:430, h:669, id:'wmob-bg',s:.5,ox:.086,oy:.027,dzoom:1.198,color:'rgba(200,100,255,.8)',label:'430×669'},
+  {w:440, h:759, id:'mob-bg', s:.5,ox:.064,oy:.001,dzoom:1.012,color:'rgba(255,150,60,.8)', label:'440×759'},
   {w:2000,h:825, id:'wide-bg',s:.4,ox:.04, color:'rgba(80,210,80,.8)',  label:'2000×825'},
 ];
 
@@ -1182,9 +1185,13 @@ function renderDevices() {
   DEVS.forEach(d=>{
     const el=document.getElementById(d.id);
     if(!img) return;
-    const fs=Math.max(d.w/CW,d.h/CH);
+    // dzoom: zusätzlicher Zoom über den reinen Seitenverhältnis-Zuschnitt (fs) hinaus -
+    // aus echten Device-Screenshots vermessen (nicht alle Geräte croppen einfach nur
+    // passend zum Seitenverhältnis, manche zoomen zusätzlich enger aufs Motiv).
+    // oy funktioniert analog zu ox, nur vertikal (Anteil von wh statt ww).
+    const fs=Math.max(d.w/CW,d.h/CH)*(d.dzoom||1);
     const ww=d.w/fs, wh=d.h/fs;
-    const cropX=(CW-ww)/2-(d.ox||0)*ww, cropY=(CH-wh)/2;
+    const cropX=(CW-ww)/2-(d.ox||0)*ww, cropY=(CH-wh)/2-(d.oy||0)*wh;
     const ds=fs*d.s;
     el.style.left  =((posX-cropX)*ds)+'px';
     el.style.top   =((posY-cropY)*ds)+'px';
